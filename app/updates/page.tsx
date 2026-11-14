@@ -1,36 +1,4 @@
-import PageShell from "../components/PageShell";
-
-const categories = ["All", "Academic", "Student Support", "SFI CUSAT", "Opportunities", "Initiatives"];
-
-export default function Updates() {
-  return (
-    <PageShell>
-      <section className="hero compact">
-        <div className="shell">
-          <div className="eyebrow">Updates</div>
-          <h1>What’s happening <em>now.</em></h1>
-          <p>
-            Announcements, student initiatives, opportunities and important
-            updates in one place. Organisational posts are always labelled SFI CUSAT.
-          </p>
-        </div>
-      </section>
-      <section className="section">
-        <div className="shell">
-          <div className="chips" style={{ marginBottom: 20 }}>
-            {categories.map((category) => (
-              <span className="chip" key={category}>{category}</span>
-            ))}
-          </div>
-          <div className="empty">
-            <strong>No live announcements yet</strong>
-            <p>
-              The frontend is ready. Verified announcements will appear here
-              after the database and moderation workflow are connected.
-            </p>
-          </div>
-        </div>
-      </section>
-    </PageShell>
-  );
-}
+"use client";
+import PageShell from "../components/PageShell"; import {useState} from "react";
+const cats=["All","Academic","Student Support","SFI CUSAT","Opportunities","Initiatives"];
+export default function Updates(){const[active,setActive]=useState("All");return <PageShell><section className="hero compact"><div className="shell"><div className="eyebrow">Updates</div><h1>What’s happening <em>now.</em></h1><p>Announcements, academic notices, opportunities and initiative updates in one place. Organisational posts are always labelled SFI CUSAT.</p></div></section><section className="section"><div className="shell"><div className="chips" style={{marginBottom:20}}>{cats.map(c=><button className={`chip${active===c?" primary-chip":""}`} style={{border:"0",cursor:"pointer"}} onClick={()=>setActive(c)} key={c}>{c}</button>)}</div><div className="empty"><strong>No verified live announcements in demo mode</strong><p>Selected category: {active}. Verified posts will appear here after the moderation workflow is connected.</p><a className="btn" href="/sign-in" style={{marginTop:14}}>Sign in for notifications</a></div></div></section><section className="section"><div className="shell grid3"><div className="card"><span className="chip">Academic</span><h3 style={{marginTop:12}}>Official-source first</h3><p>Academic updates should link back to the relevant official university source.</p></div><div className="card"><span className="chip">SFI CUSAT</span><h3 style={{marginTop:12}}>Clearly labelled</h3><p>Organisational posts are kept distinct from university announcements and services.</p></div><div className="card"><span className="chip">Safety</span><h3 style={{marginTop:12}}>Moderated publishing</h3><p>Content moves through verification before it becomes a live announcement.</p></div></div></section></PageShell>}
