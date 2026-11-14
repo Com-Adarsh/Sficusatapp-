@@ -6,7 +6,10 @@ export default function SiteHeader(){
  return <header className="site-header">
   <div className="top"><div className="shell topin"><span>SFI CUSAT · Student services ecosystem</span><span>English · മലയാളം</span></div></div>
   <nav className="nav"><div className="shell navin">
-   <a className="brand" href="/"><span className="mark">SFI</span><span>SFI CUSAT<small>Digital Student Platform</small></span></a>
+   <a className="brand" href="/" aria-label="SFI CUSAT Digital Student Platform home">
+    <img src="/logos/sfi-cusat.png" alt="SFI CUSAT logo" style={{width:42,height:42,objectFit:"contain",borderRadius:10,flexShrink:0}} />
+    <span>SFI CUSAT<small>Digital Student Platform</small></span>
+   </a>
    <div className="links desktop-links">{primary.map(([t,h])=><a key={h} href={h}>{t}</a>)}</div>
    <div className="nav-actions"><a className="icon-btn" href="/search" aria-label="Search">⌕</a><a className="icon-btn" href="/dashboard" aria-label="Dashboard">⌂</a><a className="btn primary desktop-sign" href="/sign-in">Sign in</a><button className="menu-btn" onClick={()=>setOpen(!open)} aria-expanded={open} aria-label="Menu">☰</button></div>
   </div>
