@@ -1,0 +1,7 @@
+import {createServerClient} from "@/lib/supabase/server";
+import {redirect,notFound} from "next/navigation";
+export default async function Ticket({params}:{params:Promise<{id:string}>}){
+ const {id}=await params;const s=await createServerClient();const {data:{claims}}=await s.auth.getClaims();if(!claims)redirect("/sign-in");
+ const {data:t}=await s.from("helpdesk_tickets").select("ticket_code,subject,description,status,priority,created_at,updated_at").eq("id",id).maybeSingle();if(!t)notFound();
+ return <main><section className="section"><div className="shell"><a href="/support/helpdesk">← Helpdesk</a><div className="eyebrow" style={{marginTop:24}}><i className="dot"/> {t.ticket_code}</div><h1>{t.subject}</h1><div className="chips"><span className="chip">{t.status}</span><span className="chip">{t.priority}</span></div><article className="card" style={{marginTop:24}}><h3>Request</h3><p>{t.description}</p><p className="muted">Created {new Date(t.created_at).toLocaleString()} · Updated {new Date(t.updated_at).toLocaleString()}</p></article><div className="notice" style={{marginTop:16}}>Support staff can update the ticket status. You will see the latest status here when it changes.</div></div></section></main>;
+}
