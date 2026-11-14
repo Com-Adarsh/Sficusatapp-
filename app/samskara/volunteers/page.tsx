@@ -1,11 +1,11 @@
 "use client";
-import PageShell from "../../components/PageShell";
+import PageShell from "../../components/PageShell"; import ModuleLogo from "../../components/ModuleLogo";
 import {useState} from "react";
 
 export default function Volunteers(){
  const[s,setS]=useState(false);
  return <PageShell><section className="hero compact form-hero"><div className="shell">
-  <div className="eyebrow">Samskara · Volunteers</div><h1>Be part of the <em>team.</em></h1><p>Join cultural event teams, production support and volunteer shifts. Tell the cultural team what you can contribute.</p>
+  <div className="module-brand-row"><ModuleLogo type="samskara" size="md" /><div className="eyebrow">Samskara · Volunteers</div></div><h1>Be part of the <em>team.</em></h1><p>Join cultural event teams, production support and volunteer shifts. Tell the cultural team what you can contribute.</p>
   <div className="form-hero-meta"><span>✦ Event support</span><span>✦ Media & production</span><span>✦ Creative roles</span></div>
  </div></section>
  {s?<div className="shell"><div className="form-success"><div className="form-success-icon">✓</div><h2>Welcome to the <em>team.</em></h2><p>Your volunteer interest has been recorded in demo mode. Coordinator review and shift assignment will be handled by the backend.</p><div className="actions"><a className="btn primary" href="/samskara">Back to Samskara</a><button className="btn" onClick={()=>setS(false)}>Join again</button></div></div></div>:

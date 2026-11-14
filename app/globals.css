@@ -486,3 +486,15 @@ a{text-decoration:none;color:inherit}button,input,select,textarea{font:inherit}.
  .form-actions{align-items:stretch;flex-direction:column}.form-actions .btn{width:100%}.form-note{max-width:none}
  .form-success{margin:20px 15px 35px;padding:34px 20px}.form-success h2{font-size:27px}
 }
+
+
+/* Module brand marks */
+.module-logo{position:relative;display:block;flex:none;overflow:hidden;border-radius:18px;background:rgba(255,255,255,.92);border:1px solid rgba(30,20,20,.08);box-shadow:0 12px 30px rgba(0,0,0,.10)}
+.module-logo img{object-fit:contain;padding:8px}
+.module-logo-sm{width:72px;height:52px;border-radius:14px}
+.module-logo-md{width:112px;height:76px}
+.module-logo-lg{width:150px;height:102px;border-radius:22px}
+.reference-initiative .module-logo{margin-bottom:18px}
+.module-brand-row{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+.module-brand-row .module-logo{margin:0}
+@media(max-width:700px){.module-logo-lg{width:124px;height:84px}.module-logo-md{width:96px;height:66px}.module-brand-row{gap:12px}}

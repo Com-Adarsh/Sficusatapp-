@@ -51,7 +51,7 @@ export default function Home() {
           <div className="reference-grid">
             {services.map(([title, description, href, icon]) => (
               <a className="reference-card" href={href} key={title}>
-                <span className="reference-card-icon">{icon}</span>
+                {title === "SCHOLARX" ? <ModuleLogo type="scholarx" size="sm" /> : <span className="reference-card-icon">{icon}</span>}
                 <h3>{title}</h3>
                 <p>{description}</p>
                 <span className="reference-card-link">Explore <ArrowRight size={15} /></span>
