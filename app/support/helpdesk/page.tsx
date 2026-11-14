@@ -1,5 +1,5 @@
 "use client";
-import PageShell from "../components/PageShell";
+import PageShell from "../../components/PageShell";
 import {useState} from "react";
 const groups=[["Hostel Helpdesk","PG hostels and university hostels for boys and girls, with facilities, location and verified community listings.","/support/helpdesk/hostels","⌂"],["Academic Helpdesk","Departments, academic contacts, programme guidance and student-submitted help information.","/support/helpdesk/academic","▦"],["Nearby Student Spots","Tea spots, cafés, parlours and other places students can discover around campus.","/support/helpdesk/spots","☕"]];
 export default function Helpdesk(){
