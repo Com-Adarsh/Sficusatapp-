@@ -26,3 +26,35 @@ a{text-decoration:none;color:inherit}button,input,select,textarea{font:inherit}.
 @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 @media(max-width:900px){.desktop-links{display:none}.menu-btn{display:grid}.grid4{grid-template-columns:repeat(2,1fr)}}@media(max-width:760px){.topin{justify-content:center}.topin span:last-child{display:none}.navin{height:62px}.hero{padding:50px 0 34px}.hero h1{font-size:43px}.hero p{font-size:15px}.grid2,.grid3,.grid4,.quick{grid-template-columns:1fr}.section{padding:34px 0}.footergrid{grid-template-columns:1fr}.footerbottom{flex-direction:column;gap:8px}.desktop-sign{display:none}.mobilebar{display:flex;position:fixed;bottom:12px;left:12px;right:12px;z-index:30;background:rgba(17,19,24,.88);backdrop-filter:blur(18px);color:#fff;border-radius:20px;padding:9px;justify-content:space-around;box-shadow:0 12px 35px rgba(0,0,0,.25)}.mobilebar a{font-size:10px;text-align:center;padding:7px 10px;color:#ddd}.mobilebar b{display:block;font-size:15px;color:#fff;margin-bottom:2px}.formgrid{grid-template-columns:1fr}.formgrid .full{grid-column:auto}}
+
+
+/* Phase 1 — student platform design tokens */
+:root{
+  --color-primary:#2563EB;--color-primary-hover:#1D4ED8;--color-primary-tint:#EFF6FF;
+  --color-accent:#FF6B4A;--color-bg:#F8FAFC;--color-surface:#FFFFFF;
+  --color-text:#0F172A;--color-muted:#475569;--color-border:#E2E8F0;
+  --color-success:#16A34A;--color-warning:#F59E0B;--color-danger:#DC2626;--color-info:#0EA5E9;
+  --module-abhimanyu:#2563EB;--module-scholarx:#F59E0B;--module-aashraya:#E11D48;
+  --module-sahayi:#0D9488;--module-samskara:#7C3AED;--module-support:#4F46E5;
+  --radius-card:16px;--radius-control:12px;
+  --shadow-card:0 8px 24px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.04);
+  --shadow-card-hover:0 14px 34px rgba(15,23,42,.10);
+  --focus-ring:0 0 0 3px rgba(37,99,235,.22);
+}
+.design-system{background:var(--color-bg);color:var(--color-text);min-height:100vh}
+.ds-swatch{height:56px;border-radius:12px;border:1px solid var(--color-border);display:flex;align-items:end;padding:8px;color:#fff;font-size:12px;font-weight:700}
+.ds-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:20px}
+.ds-control{border:1px solid var(--color-border);border-radius:var(--radius-control);min-height:44px;padding:10px 12px;background:#fff;color:var(--color-text)}
+.ds-control:focus{outline:none;box-shadow:var(--focus-ring);border-color:var(--color-primary)}
+.ds-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;border-radius:var(--radius-control);padding:10px 16px;border:1px solid transparent;font-weight:700;transition:transform .18s ease,box-shadow .18s ease,background .18s ease}
+.ds-button:hover{transform:translateY(-1px);box-shadow:var(--shadow-card-hover)}
+.ds-button-primary{background:var(--color-primary);color:#fff}.ds-button-primary:hover{background:var(--color-primary-hover)}
+.ds-button-secondary{background:#fff;color:var(--color-text);border-color:var(--color-border)}
+.ds-button-ghost{background:transparent;color:var(--color-primary)}
+.ds-button-danger{background:var(--color-danger);color:#fff}
+.ds-badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:700;border:1px solid transparent}
+.ds-badge-blue{color:#1D4ED8;background:#EFF6FF;border-color:#BFDBFE}
+.ds-badge-green{color:#15803D;background:#F0FDF4;border-color:#BBF7D0}
+.ds-badge-amber{color:#A16207;background:#FFFBEB;border-color:#FDE68A}
+.ds-badge-rose{color:#BE123C;background:#FFF1F2;border-color:#FECDD3}
+@media(prefers-reduced-motion:reduce){.ds-button{transition:none}}
