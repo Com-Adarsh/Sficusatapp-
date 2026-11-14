@@ -1,13 +1,6 @@
 import PageShell from "../components/PageShell";
 
-const categories = [
-  "All",
-  "Academic",
-  "Student Support",
-  "SFI CUSAT",
-  "Opportunities",
-  "Initiatives",
-];
+const categories = ["All", "Academic", "Student Support", "SFI CUSAT", "Opportunities", "Initiatives"];
 
 export default function Updates() {
   return (
@@ -15,27 +8,20 @@ export default function Updates() {
       <section className="hero compact">
         <div className="shell">
           <div className="eyebrow">Updates</div>
-          <h1>
-            What’s happening <em>now.</em>
-          </h1>
+          <h1>What’s happening <em>now.</em></h1>
           <p>
             Announcements, student initiatives, opportunities and important
-            updates in one place. Organisational posts are always labelled SFI
-            CUSAT.
+            updates in one place. Organisational posts are always labelled SFI CUSAT.
           </p>
         </div>
       </section>
-
       <section className="section">
         <div className="shell">
           <div className="chips" style={{ marginBottom: 20 }}>
             {categories.map((category) => (
-              <span className="chip" key={category}>
-                {category}
-              </span>
+              <span className="chip" key={category}>{category}</span>
             ))}
           </div>
-
           <div className="empty">
             <strong>No live announcements yet</strong>
             <p>
