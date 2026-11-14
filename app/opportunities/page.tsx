@@ -1,7 +1,6 @@
 import PageShell from "../components/PageShell";
 const cats=[["Scholarships","Financial support","₹"],["Internships","Research & industry","↗"],["Jobs","Early career roles","◎"],["Fellowships","Academic & leadership","✦"]];
 const listings=[["Science scholarship","Scholarship","Closing soon"],["Summer research internship","Internship","Open"],["Student data analyst role","Job","Open"],["Research fellowship","Fellowship","Open"]];
-const scholarXLogo="/ScholarX%20🎓📖%2020261114_203417.jpg";
 
 export default function Opportunities(){
   return <PageShell>

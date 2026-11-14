@@ -1,11 +1,12 @@
 "use client";
 import PageShell from "../../components/PageShell";
+import ModuleLogo from "../../components/ModuleLogo";
 import {useState} from "react";
 
 export default function SubmitOpportunity(){
  const[s,setS]=useState(false);
  return <PageShell><section className="hero compact form-hero"><div className="shell">
-  <div className="eyebrow">SCHOLARX · Verified Opportunity Submission</div><h1>Add a <em>job or internship.</em></h1>
+  <div className="module-brand-row"><ModuleLogo type="scholarx" size="md" /><div className="eyebrow">SCHOLARX · Verified Opportunity Submission</div></div><h1>Add a <em>job or internship.</em></h1>
   <p>Help students discover verified opportunities. Every submission goes through moderation before it becomes public.</p>
   <div className="form-hero-meta"><span>✓ Verified contributor access</span><span>✓ Moderator review</span><span>✓ Official link required</span></div>
  </div></section>
