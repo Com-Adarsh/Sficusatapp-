@@ -18,4 +18,5 @@ export default function Aashraya(){return <PageShell>
  <section className="section"><div className="shell grid4">{actions.map(([t,d,h,i])=><a className="card initiative a" href={h} key={t}><div className="icon">{i}</div><h3>{t}</h3><p>{d}</p><div className="chips"><span className="chip">Open →</span></div></a>)}</div></section>
  <section className="section"><div className="shell"><div className="notice"><div className="icon" style={{margin:0}}>!</div><div><strong>Important</strong><p>Aashraya is a volunteer network, not a medical service or blood bank. For emergencies, contact 112 or the relevant hospital blood bank. Medical eligibility and transfusion decisions remain with qualified professionals.</p></div></div></div></section>
  <section className="section"><div className="shell"><div className="card"><span className="chip">Coordinator workspace</span><h3 style={{marginTop:12}}>Review requests and coordinate matches</h3><p>Authorised coordinators will use a separate workspace for verification, donor consent and fulfilment tracking.</p><a className="btn" href="/aashraya/coordinator">Open demo workspace →</a></div></div></section>
-</PageShell>
+ </PageShell>;
+}
