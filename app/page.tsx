@@ -1,10 +1,103 @@
 import PageShell from "./components/PageShell";
-const services=[["▦","Abhimanyu Learning Space","Notes, question papers, syllabi and verified academic updates.","/resources"],["↗","SCHOLARX","Scholarships, internships, jobs and fellowships.","/opportunities"],["?","Student Support","Helpdesk, grievances, issues and interventions.","/support"]];
-const initiatives=[["Aashraya","Blood donation support","Request blood, register as a donor or find donation camps.","/aashraya","a"],["Sahayi","Scribe & accessibility support","Request a scribe or join the volunteer network.","/sahayi","s"],["Samskara","Culture & creativity","Events, competitions, magazine, gallery and volunteers.","/samskara","m"]];
-export default function Home(){return <PageShell>
-<section className="hero"><div className="shell"><div className="eyebrow"><i className="dot"/> SFI CUSAT · Digital Student Platform</div><h1>Everything CUSAT students<br/><em>need, in one place.</em></h1><p>One accessible place for academic resources, opportunities, student support and culture — built around the everyday needs of CUSAT students.</p><div className="actions"><a className="btn primary" href="#services">Explore services</a><a className="btn" href="/search">Search the platform</a></div><div className="chips"><span className="chip">Mobile first</span><span className="chip">English · മലയാളം</span><span className="chip">Open to all CUSAT students</span></div></div></section>
-<section className="section"><div className="shell"><div className="notice"><div className="icon" style={{margin:0}}>!</div><div><strong>Need blood urgently?</strong><p>Use Aashraya for student-to-student blood support. For a medical emergency, contact 112 or the hospital blood bank.</p><div className="actions" style={{marginTop:10}}><a className="btn primary" href="/aashraya/request">Request blood</a><a className="btn" href="tel:112">Call 112</a></div></div></div></div></section>
-<section className="section" id="services"><div className="shell"><div className="sectionhead"><div><h2>Start with what you need</h2><p>Clear entry points instead of a maze of menus.</p></div><a className="btn" href="/search">Search everything</a></div><div className="grid3">{services.map(([i,t,d,h])=><a className="card" href={h} key={t}><div className="icon">{i}</div><h3>{t}</h3><p>{d}</p><div className="chips"><span className="chip">Explore →</span></div></a>)}</div></div></section>
-<section className="section"><div className="shell"><div className="sectionhead"><div><h2>Student initiatives</h2><p>Services are intended for all CUSAT students, regardless of affiliation.</p></div></div><div className="grid3">{initiatives.map(([n,t,d,h,c])=><a className={`card initiative ${c}`} href={h} key={n}><div className="eyebrow">{n}</div><h3>{t}</h3><p>{d}</p><div className="chips"><span className="chip">Open module →</span></div></a>)}</div></div></section>
-<section className="section"><div className="shell grid2"><div className="card"><span className="chip">Quick actions</span><h3 style={{marginTop:12}}>Get there in one tap</h3><div className="actions"><a className="btn primary" href="/aashraya/request">Request Blood</a><a className="btn" href="/sahayi/request">Request a Scribe</a><a className="btn" href="/resources">Find Notes</a></div></div><div className="notice"><div className="icon" style={{margin:0}}>i</div><div><strong>Run by SFI CUSAT</strong><p>This is a student-run platform, not an official website of Cochin University of Science and Technology.</p></div></div></div></section>
-</PageShell>}
+import { ArrowRight, BookOpen, BriefcaseBusiness, LifeBuoy, Search, ShieldCheck, Sparkles, UsersRound } from "lucide-react";
+
+const services = [
+  ["Abhimanyu Learning Space", "Notes, question papers and verified academic resources.", "/resources", <BookOpen size={24} />],
+  ["SCHOLARX", "Scholarships, internships, jobs and fellowships.", "/opportunities", <BriefcaseBusiness size={24} />],
+  ["Student Support", "Helpdesk, grievances, issues and interventions.", "/support", <LifeBuoy size={24} />],
+];
+
+const initiatives = [
+  ["Aashraya", "Blood donation support", "Request blood, register as a donor or find donation camps.", "/aashraya", "red"],
+  ["Sahayi", "Scribe & accessibility support", "Request a scribe or join the volunteer network.", "/sahayi", "teal"],
+  ["Samskara", "Culture & creativity", "Events, competitions, magazine, gallery and volunteers.", "/samskara", "amber"],
+];
+
+export default function Home() {
+  return (
+    <PageShell>
+      <section className="reference-hero">
+        <div className="shell">
+          <span className="reference-pill">A student initiative of SFI CUSAT</span>
+          <h1>One student platform for every <em>campus service.</em></h1>
+          <p>
+            Find study material, ask for blood or a scribe, discover scholarships and
+            get help with hostel or academic problems — all from your phone.
+          </p>
+          <div className="reference-search">
+            <Search size={19} aria-hidden="true" />
+            <input aria-label="Search services" placeholder="Search services, notes, blood, hostel..." />
+          </div>
+          <div className="reference-tags">
+            <span>Mobile first</span><span>English · മലയാളം</span><span>Open to all CUSAT students</span>
+          </div>
+        </div>
+      </section>
+
+      <main className="shell reference-main">
+        <a className="reference-sos" href="/aashraya/request">
+          <span className="sos-title">🩸 Need blood urgently?</span>
+          <span>Post a request to Aashraya <ArrowRight size={17} aria-hidden="true" /></span>
+        </a>
+
+        <section className="reference-section" aria-labelledby="start-title">
+          <div className="reference-section-head">
+            <div>
+              <h2 id="start-title">Start with what you need</h2>
+              <p>Clear entry points instead of a maze of menus.</p>
+            </div>
+            <a className="reference-text-link" href="/search">Search everything <ArrowRight size={15} /></a>
+          </div>
+          <div className="reference-grid">
+            {services.map(([title, description, href, icon]) => (
+              <a className="reference-card" href={href} key={title}>
+                <span className="reference-card-icon">{icon}</span>
+                <h3>{title}</h3>
+                <p>{description}</p>
+                <span className="reference-card-link">Explore <ArrowRight size={15} /></span>
+              </a>
+            ))}
+          </div>
+        </section>
+
+        <section className="reference-section" aria-labelledby="initiatives-title">
+          <div className="reference-section-head">
+            <div>
+              <h2 id="initiatives-title">Student initiatives</h2>
+              <p>Services are intended for all CUSAT students, regardless of affiliation.</p>
+            </div>
+          </div>
+          <div className="reference-grid">
+            {initiatives.map(([name, title, description, href, tone]) => (
+              <a className={`reference-card reference-initiative reference-${tone}`} href={href} key={name}>
+                <span className="reference-module">{name}</span>
+                <h3>{title}</h3>
+                <p>{description}</p>
+                <span className="reference-card-link">Open module <ArrowRight size={15} /></span>
+              </a>
+            ))}
+          </div>
+        </section>
+
+        <section className="reference-section">
+          <div className="reference-quick">
+            <div>
+              <span className="reference-pill">Quick actions</span>
+              <h2>Get there in one tap</h2>
+              <p>Keep the most common student tasks close at hand.</p>
+              <div className="reference-actions">
+                <a className="reference-button primary" href="/aashraya/request">Request Blood</a>
+                <a className="reference-button" href="/sahayi/request">Request a Scribe</a>
+                <a className="reference-button" href="/resources">Find Notes</a>
+              </div>
+            </div>
+            <div className="reference-note">
+              <ShieldCheck size={20} />
+              <div><strong>Run by SFI CUSAT</strong><p>This is a student-run platform, not an official website of Cochin University of Science and Technology.</p></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </PageShell>
+  );
+}
