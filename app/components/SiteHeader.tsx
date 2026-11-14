@@ -1,6 +1,6 @@
 "use client";
 import {useState} from "react";
-const primary=[["Abhimanyu","/resources"],["Opportunities","/opportunities"],["Aashraya","/aashraya"],["Sahayi","/sahayi"],["Samskara","/samskara"],["Support","/support"],["Updates","/updates"]];
+const primary=[["Abhimanyu","/resources"],["SCHOLARX","/opportunities"],["Aashraya","/aashraya"],["Sahayi","/sahayi"],["Samskara","/samskara"],["Support","/support"],["Updates","/updates"]];
 export default function SiteHeader(){
  const[open,setOpen]=useState(false);
  return <header className="site-header">
