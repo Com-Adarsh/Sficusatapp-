@@ -29,7 +29,7 @@ async function ownsExam(db:Pool,examId:string,user:AuthUser,write=false){
 
 export function registerCbtRoutes(app:FastifyInstance,db:Pool,ctx:Ctx){
  const coordinator=ctx.requirePermission('cbt.create');
- const manager=ctx.requirePermission('cbt.manage');
+ const manager=ctx.requirePermission('cbt.manage'); const publisher=ctx.requirePermission('cbt.publish');
 
  app.post('/api/cbt/exams',{preHandler:coordinator},async(req,reply)=>{
   const b=examInput.parse(req.body);
@@ -77,7 +77,7 @@ export function registerCbtRoutes(app:FastifyInstance,db:Pool,ctx:Ctx){
   if(!r.rowCount)return reply.code(409).send({error:'Answer key not found or already locked'}); return {answerKey:r.rows[0]};
  });
 
- app.post('/api/cbt/exams/:id/publish',{preHandler:manager},async(req,reply)=>{
+ app.post('/api/cbt/exams/:id/publish',{preHandler:publisher},async(req,reply)=>{
   const {id}=idParam.parse(req.params); const own=await ownsExam(db,id,req.user!); if(!own.ok)return reply.code(own.status).send({error:own.error});
   const key=await db.query("SELECT id FROM answer_key_versions WHERE exam_id=$1 AND status='locked' ORDER BY version DESC LIMIT 1",[id]);
   const questions=await db.query('SELECT count(*)::int n FROM exam_questions WHERE exam_id=$1',[id]);
@@ -89,7 +89,7 @@ export function registerCbtRoutes(app:FastifyInstance,db:Pool,ctx:Ctx){
  app.post('/api/cbt/exams/:id/register',{preHandler:ctx.authenticate},async(req,reply)=>{
   const {id}=idParam.parse(req.params); const b=z.object({candidateName:z.string().trim().min(2).max(120).optional(),candidateIdentifier:z.string().max(100).optional(),accessCode:z.string().optional()}).parse(req.body);
   const e=(await db.query('SELECT * FROM exams WHERE id=$1',[id])).rows[0]; if(!e)return reply.code(404).send({error:'Exam not found'});
-  const now=new Date(); if(!['scheduled','registration_open'].includes(e.status)||now<new Date(e.starts_at)&&e.registration_close_at&&now>new Date(e.registration_close_at))return reply.code(409).send({error:'Registration is closed'});
+  const now=new Date(); const registrationOpen=e.registration_open_at?now>=new Date(e.registration_open_at):true; const registrationClosed=e.registration_close_at?now>new Date(e.registration_close_at):now>=new Date(e.starts_at); if(!['scheduled','registration_open'].includes(e.status)||!registrationOpen||registrationClosed)return reply.code(409).send({error:'Registration is closed'});
   if(e.access_type==='code'&&b.accessCode!==e.access_code)return reply.code(403).send({error:'Invalid examination code'});
   const n=await db.query('SELECT count(*)::int n FROM exam_registrations WHERE exam_id=$1 AND user_id=$2 AND status=\'registered\'',[id,req.user!.id]);
   if(n.rows[0].n>=1)return {message:'Already registered',registration:(await db.query('SELECT * FROM exam_registrations WHERE exam_id=$1 AND user_id=$2',[id,req.user!.id])).rows[0]};
@@ -161,6 +161,6 @@ export function registerCbtRoutes(app:FastifyInstance,db:Pool,ctx:Ctx){
 
  app.post('/api/cbt/exams/:id/release-results',{preHandler:ctx.requirePermission('cbt.results.read')},async(req,reply)=>{
   const {id}=idParam.parse(req.params);const own=await ownsExam(db,id,req.user!);if(!own.ok)return reply.code(own.status).send({error:own.error});
-  const r=await db.query('UPDATE exam_results SET released_at=COALESCE(released_at,now()) WHERE exam_id=$1 RETURNING count(*)',[id]);return {released:true,count:r.rowCount};
+  const r=await db.query('UPDATE exam_results SET released_at=COALESCE(released_at,now()) WHERE exam_id=$1',[id]); return {released:true,count:r.rowCount};
  });
 }
