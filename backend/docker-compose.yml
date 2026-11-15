@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sfi
+      POSTGRES_PASSWORD: sfi_dev_password
+      POSTGRES_DB: sfi_cusat
+    ports: ["5433:5432"]
+    volumes: [sfi_postgres:/var/lib/postgresql/data]
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports: ["6379:6379"]
+    volumes: [sfi_redis:/data]
+volumes:
+  sfi_postgres:
+  sfi_redis
