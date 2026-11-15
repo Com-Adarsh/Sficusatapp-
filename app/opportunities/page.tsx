@@ -1,4 +1,6 @@
 import PageShell from "../components/PageShell";
+import ModuleLogo from "../components/ModuleLogo";
+
 const cats=[["Scholarships","Financial support","₹"],["Internships","Research & industry","↗"],["Jobs","Early career roles","◎"],["Fellowships","Academic & leadership","✦"]];
 const listings=[["Science scholarship","Scholarship","Closing soon"],["Summer research internship","Internship","Open"],["Student data analyst role","Job","Open"],["Research fellowship","Fellowship","Open"]];
 
@@ -7,9 +9,7 @@ export default function Opportunities(){
     <section className="hero compact">
       <div className="shell">
         <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:18}}>
-          <div style={{width:76,height:76,borderRadius:20,overflow:"hidden",background:"rgba(255,255,255,.88)",display:"grid",placeItems:"center",boxShadow:"0 12px 30px rgba(0,0,0,.12)"}}>
-            <img src={scholarXLogo} alt="ScholarX logo" style={{width:"100%",height:"100%",objectFit:"cover"}} />
-          </div>
+          <ModuleLogo type="scholarx" size="md" />
           <div className="eyebrow">SCHOLARX</div>
         </div>
         <h1>Find your next <em>opportunity.</em></h1>
