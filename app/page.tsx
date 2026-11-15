@@ -1,4 +1,5 @@
 import PageShell from "./components/PageShell";
+import ModuleLogo from "./components/ModuleLogo";
 import { ArrowRight, BookOpen, BriefcaseBusiness, LifeBuoy, Search, ShieldCheck, Sparkles, UsersRound } from "lucide-react";
 
 const services = [
