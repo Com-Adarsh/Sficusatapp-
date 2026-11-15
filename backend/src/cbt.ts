@@ -31,6 +31,18 @@ export function registerCbtRoutes(app:FastifyInstance,db:Pool,ctx:Ctx){
  const coordinator=ctx.requirePermission('cbt.create');
  const manager=ctx.requirePermission('cbt.manage'); const publisher=ctx.requirePermission('cbt.publish');
 
+ app.post('/api/cbt/question-banks',{preHandler:ctx.requirePermission('cbt.question.manage')},async(req,reply)=>{
+  const b=z.object({title:z.string().trim().min(2).max(200),description:z.string().max(5000).optional(),departmentId:z.string().uuid().optional(),sourceType:z.enum(['pdf','csv','xlsx','json','manual']).default('manual')}).parse(req.body);
+  const r=await db.query('INSERT INTO question_banks(owner_user_id,department_id,title,description,source_type) VALUES($1,$2,$3,$4,$5) RETURNING *',[req.user!.id,b.departmentId??null,b.title,b.description??null,b.sourceType]);
+  await ctx.audit(req.user!.id,'cbt.question_bank.create','question_bank',r.rows[0].id,null,r.rows[0]);
+  return reply.code(201).send({questionBank:r.rows[0]});
+ });
+
+ app.get('/api/cbt/question-banks',{preHandler:ctx.requirePermission('cbt.question.manage')},async(req)=>{
+  const r=await db.query('SELECT id,title,description,department_id,source_type,created_at FROM question_banks WHERE owner_user_id=$1 OR $2=ANY(ARRAY[]::text[]) ORDER BY created_at DESC',[req.user!.id,'never']);
+  return {questionBanks:r.rows};
+ });
+
  app.post('/api/cbt/exams',{preHandler:coordinator},async(req,reply)=>{
   const b=examInput.parse(req.body);
   if(new Date(b.endsAt)<=new Date(b.startsAt))return reply.code(400).send({error:'endsAt must be after startsAt'});
