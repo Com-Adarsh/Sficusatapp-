@@ -3,7 +3,7 @@ import { v } from "convex/values";
 
 const app = defineApp({
   env: {
-    CONVEX_API_SECRET: v.string(),
+    SUPABASE_AUTH_ISSUER: v.string(),
   },
 });
 
