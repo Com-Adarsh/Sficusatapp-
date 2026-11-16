@@ -171,7 +171,7 @@ export function registerCbtRoutes(app:FastifyInstance,db:Pool,ctx:Ctx){
   return {results:r.rows};
  });
 
- app.post('/api/cbt/exams/:id/release-results',{preHandler:ctx.requirePermission('cbt.results.read')},async(req,reply)=>{
+ app.post('/api/cbt/exams/:id/release-results',{preHandler:ctx.requirePermission('cbt.results.release')},async(req,reply)=>{
   const {id}=idParam.parse(req.params);const own=await ownsExam(db,id,req.user!);if(!own.ok)return reply.code(own.status).send({error:own.error});
   const r=await db.query('UPDATE exam_results SET released_at=COALESCE(released_at,now()) WHERE exam_id=$1',[id]); return {released:true,count:r.rowCount};
  });
