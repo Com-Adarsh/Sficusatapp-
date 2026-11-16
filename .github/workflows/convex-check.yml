@@ -2,7 +2,7 @@ name: Convex backend check
 
 on:
   push:
-    branches: ["main", "feat/convex-backend-layer"]
+    branches: ["main", "feat/convex-complete-backend"]
     paths:
       - "convex/**"
       - "package.json"
@@ -18,12 +18,15 @@ on:
 jobs:
   convex:
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_AUTH_ISSUER: https://example.supabase.co/auth/v1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
       - run: npm install
-      - name: Validate Convex functions and schema
-        run: npx convex dev --once
+      - name: Generate Convex types and typecheck backend
+        run: CONVEX_AGENT_MODE=anonymous npx convex dev --once
+      - name: Typecheck application and Convex backend
+        run: npx tsc --noEmit
