@@ -2,7 +2,7 @@ import 'dotenv/config'; import {Pool} from 'pg'; import bcrypt from 'bcryptjs';
 const db=new Pool({connectionString:process.env.DATABASE_URL});
 const permissions=['profile.read','profile.update','department.create','department.manage','cbt.create','cbt.manage','cbt.publish','cbt.question.manage','cbt.results.read','cbt.results.export','aashraya.request.create','aashraya.manage','sahayi.request.create','sahayi.manage','samskara.manage','scholarx.submit','scholarx.manage','helpdesk.ticket.create','helpdesk.manage','admin.manage'];
 const rolePermissions:Record<string,string[]>={
- student:['profile.read','profile.update','department.create','cbt.create','cbt.manage','cbt.publish','cbt.question.manage','cbt.results.read','cbt.results.export','aashraya.request.create','sahayi.request.create','scholarx.submit','helpdesk.ticket.create'],
+ student:['profile.read','profile.update','aashraya.request.create','sahayi.request.create','scholarx.submit','helpdesk.ticket.create'],
  department_coordinator:['profile.read','profile.update','department.create','cbt.create','cbt.manage','cbt.publish','cbt.question.manage','cbt.results.read','cbt.results.export'],
  module_coordinator:['aashraya.manage','sahayi.manage','samskara.manage','scholarx.manage','helpdesk.manage','department.manage'],
  moderator:['department.manage','cbt.manage','cbt.results.read','cbt.results.export','scholarx.manage','helpdesk.manage','aashraya.manage','sahayi.manage','samskara.manage'],
