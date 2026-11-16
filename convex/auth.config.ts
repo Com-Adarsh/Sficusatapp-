@@ -1,7 +1,9 @@
 import type { AuthConfig } from "convex/server";
 
-const issuer = process.env.SUPABASE_AUTH_ISSUER ?? "https://example.supabase.co/auth/v1";
+// Replace this issuer with the project's Supabase Auth issuer before production deployment.
+// Expected format: https://<project-ref>.supabase.co/auth/v1
+const SUPABASE_AUTH_ISSUER = "https://example.supabase.co/auth/v1";
 
 export default {
-  providers: [{ domain: issuer, applicationID: "authenticated" }],
+  providers: [{ domain: SUPABASE_AUTH_ISSUER, applicationID: "authenticated" }],
 } satisfies AuthConfig;
