@@ -194,7 +194,7 @@ export default defineSchema({
   notifications: defineTable({
     legacyId: v.string(), userId: v.string(), title: v.string(), body: v.string(), type: v.string(),
     link: v.optional(v.string()), readAt: v.optional(v.number()), ...timestamps,
-  }).index("by_user", ["userId"]).index("by_user_created", ["userId", "createdAt"]),
+  }).index("by_legacy_id", ["legacyId"]).index("by_user", ["userId"]).index("by_user_created", ["userId", "createdAt"]),
   notificationPreferences: defineTable({
     userId: v.string(), channel: v.string(), enabled: v.boolean(), type: v.optional(v.string()), ...timestamps,
   }).index("by_user", ["userId"]),
