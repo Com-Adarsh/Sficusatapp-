@@ -21,7 +21,7 @@ export type CbtQuestion={id:string;question_type:string;question_text:string;mar
 
 export type Attempt={id:string;startedAt:string;expiresAt:string};
 
-export type Result={id:string;attempt_id:string;score:number;total_marks:number;correct_count:number;wrong_count:number;skipped_count:number;time_taken_seconds:number;released_at?:string|null};
+export type Result={id:string;attempt_id:string;exam_id:string;user_id?:string;full_name?:string|null;email?:string;candidate_identifier?:string|null;score:number;total_marks:number;correct_count:number;wrong_count:number;skipped_count:number;time_taken_seconds:number;released_at?:string|null};
 
 export async function listExams(){return cbtFetch<{exams:Exam[]}>("/api/academic/exams")}
 export async function createExam(body:unknown){return cbtFetch<{exam:Exam}>("/api/cbt/exams",{method:"POST",body:JSON.stringify(body)})}
