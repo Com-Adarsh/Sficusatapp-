@@ -23,7 +23,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
       - run: npm ci
       - name: Generate Convex types and typecheck backend
         run: npx convex codegen --typecheck enable
