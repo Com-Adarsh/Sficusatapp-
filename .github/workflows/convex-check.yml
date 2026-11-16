@@ -1,0 +1,29 @@
+name: Convex backend check
+
+on:
+  push:
+    branches: ["main", "feat/convex-backend-layer"]
+    paths:
+      - "convex/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/convex-check.yml"
+  pull_request:
+    paths:
+      - "convex/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/convex-check.yml"
+
+jobs:
+  convex:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install
+      - name: Validate Convex functions and schema
+        run: npx convex dev --once
