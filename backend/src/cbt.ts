@@ -153,10 +153,19 @@ export function registerCbtRoutes(app:FastifyInstance,db:Pool,ctx:Ctx){
    const a=(await c.query('SELECT * FROM exam_attempts WHERE id=$1 AND user_id=$2 FOR UPDATE',[id,req.user!.id])).rows[0]; if(!a){await c.query('ROLLBACK');return reply.code(404).send({error:'Attempt not found'});}
    if(a.status!=='active'){await c.query('ROLLBACK');return reply.code(409).send({error:'Attempt already submitted'});}
    const key=(await c.query('SELECT * FROM answer_key_versions WHERE id=$1 AND status=\'locked\'',[a.answer_key_version_id])).rows[0]; if(!key){await c.query('ROLLBACK');return reply.code(500).send({error:'Locked answer key unavailable'});}
-   const rows=(await c.query(`SELECT eq.question_id,ake.correct_option,ake.marks,ake.negative_marks,aa.selected_option
+   const rows=(await c.query(`SELECT eq.question_id,q.question_type,ake.correct_option,ake.correct_options,ake.marks,ake.negative_marks,aa.selected_option
       FROM exam_questions eq JOIN answer_key_entries ake ON ake.question_id=eq.question_id AND ake.answer_key_version_id=$1
       LEFT JOIN attempt_answers aa ON aa.question_id=eq.question_id AND aa.attempt_id=$2 WHERE eq.exam_id=$3`,[a.answer_key_version_id,id,a.exam_id])).rows;
-   let score=0,correct=0,wrong=0,skipped=0; for(const x of rows){if(!x.selected_option){skipped++;continue} if(x.selected_option===x.correct_option){correct++;score+=Number(x.marks)}else{wrong++;score-=Number(x.negative_marks)}}
+   let score=0,correct=0,wrong=0,skipped=0;
+   for(const x of rows){
+    if(!x.selected_option){skipped++;continue}
+    const expected=Array.isArray(x.correct_options)&&x.correct_options.length?x.correct_options:[x.correct_option];
+    const selected=String(x.selected_option);
+    const isCorrect=x.question_type==='multiple_choice'
+      ? expected.length===1 ? false : expected.includes(selected)
+      : expected.includes(selected);
+    if(isCorrect){correct++;score+=Number(x.marks)}else{wrong++;score-=Number(x.negative_marks)}
+   }
    score=Math.max(0,score); const submitted=new Date(); const elapsed=Math.max(0,Math.floor((submitted.getTime()-new Date(a.started_at).getTime())/1000)); const status=submitted>new Date(a.expires_at)?'expired':'submitted';
    const up=await c.query(`UPDATE exam_attempts SET submitted_at=$1,status=$2,score=$3,correct_count=$4,wrong_count=$5,skipped_count=$6,time_taken_seconds=$7 WHERE id=$8 RETURNING *`,[submitted,status,score,correct,wrong,skipped,Math.min(elapsed,Math.ceil((new Date(a.expires_at).getTime()-new Date(a.started_at).getTime())/1000)),id]);
    const total=rows.reduce((s,x)=>s+Number(x.marks),0);
