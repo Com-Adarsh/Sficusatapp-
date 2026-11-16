@@ -2,7 +2,7 @@ name: Convex backend check
 
 on:
   push:
-    branches: ["main", "feat/convex-backend-layer"]
+    branches: ["main", "feat/convex-complete-backend"]
     paths:
       - "convex/**"
       - "package.json"
@@ -24,6 +24,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm install
-      - name: Validate Convex functions and schema
-        run: npx convex dev --once
+      - run: npm ci
+      - name: Generate Convex types and typecheck backend
+        run: npx convex codegen --typecheck enable
