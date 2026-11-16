@@ -225,3 +225,102 @@ export const releaseResults = internalMutation({
     return results.length;
   },
 });
+
+
+export const getExam = internalQuery({
+  args: { legacyId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db.query("exams").withIndex("by_legacy_id", q => q.eq("legacyId", args.legacyId)).unique();
+  },
+});
+
+export const getExamQuestions = internalQuery({
+  args: { examId: v.string() },
+  handler: async (ctx, args) => {
+    const links = await ctx.db.query("examQuestions").withIndex("by_exam_position", q => q.eq("examId", args.examId)).order("asc").collect();
+    const questions = [];
+    for (const link of links) {
+      const question = await ctx.db.query("questions").withIndex("by_legacy_id", q => q.eq("legacyId", link.questionId)).unique();
+      if (question) questions.push({ ...question, position: link.position });
+    }
+    return questions;
+  },
+});
+
+export const upsertQuestionBank = internalMutation({
+  args: {
+    legacyId: v.string(),
+    ownerUserId: v.string(),
+    departmentId: v.optional(v.string()),
+    title: v.string(),
+    description: v.optional(v.string()),
+    sourceType: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db.query("questionBanks").withIndex("by_legacy_id", q => q.eq("legacyId", args.legacyId)).unique();
+    const timestamp = now();
+    if (existing) {
+      await ctx.db.patch(existing._id, { ...args, updatedAt: timestamp });
+      return existing._id;
+    }
+    return await ctx.db.insert("questionBanks", { ...args, createdAt: timestamp, updatedAt: timestamp });
+  },
+});
+
+export const upsertQuestion = internalMutation({
+  args: {
+    legacyId: v.string(),
+    questionBankId: v.string(),
+    questionType: v.string(),
+    questionText: v.string(),
+    marks: v.number(),
+    negativeMarks: v.number(),
+    difficulty: v.optional(v.string()),
+    position: v.number(),
+    options: v.array(v.object({ key: v.string(), text: v.string(), position: v.number() })),
+    examId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db.query("questions").withIndex("by_legacy_id", q => q.eq("legacyId", args.legacyId)).unique();
+    const timestamp = now();
+    const { examId, ...question } = args;
+    let questionId;
+    if (existing) {
+      await ctx.db.patch(existing._id, { ...question, updatedAt: timestamp });
+      questionId = existing._id;
+    } else {
+      questionId = await ctx.db.insert("questions", { ...question, createdAt: timestamp, updatedAt: timestamp });
+    }
+    if (examId) {
+      const link = await ctx.db.query("examQuestions").withIndex("by_exam_position", q => q.eq("examId", examId).eq("position", args.position)).unique();
+      if (!link) await ctx.db.insert("examQuestions", { examId, questionId: args.legacyId, position: args.position });
+    }
+    return questionId;
+  },
+});
+
+export const upsertAnswerKey = internalMutation({
+  args: {
+    legacyId: v.string(),
+    examId: v.string(),
+    version: v.number(),
+    status: v.string(),
+    createdBy: v.string(),
+    lockedAt: v.optional(v.number()),
+    entries: v.array(v.object({
+      questionId: v.string(),
+      correctOptions: v.array(v.string()),
+      marks: v.number(),
+      negativeMarks: v.number(),
+    })),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db.query("answerKeys").withIndex("by_legacy_id", q => q.eq("legacyId", args.legacyId)).unique();
+    const timestamp = now();
+    if (existing) {
+      await ctx.db.patch(existing._id, { ...args, updatedAt: timestamp });
+      return existing._id;
+    }
+    return await ctx.db.insert("answerKeys", { ...args, createdAt: timestamp, updatedAt: timestamp });
+  },
+});
