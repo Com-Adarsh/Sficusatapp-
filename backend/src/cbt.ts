@@ -39,7 +39,7 @@ export function registerCbtRoutes(app:FastifyInstance,db:Pool,ctx:Ctx){
  });
 
  app.get('/api/cbt/question-banks',{preHandler:ctx.requirePermission('cbt.question.manage')},async(req)=>{
-  const r=await db.query('SELECT id,title,description,department_id,source_type,created_at FROM question_banks WHERE owner_user_id=$1 OR $2=ANY(ARRAY[]::text[]) ORDER BY created_at DESC',[req.user!.id,'never']);
+  const r=await db.query('SELECT id,title,description,department_id,source_type,created_at FROM question_banks WHERE owner_user_id=$1 ORDER BY created_at DESC',[req.user!.id,'never']);
   return {questionBanks:r.rows};
  });
 
