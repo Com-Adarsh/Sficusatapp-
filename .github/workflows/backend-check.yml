@@ -2,7 +2,7 @@ name: Backend API check
 
 on:
   push:
-    branches: ["main", "backend/self-hosted-foundation"]
+    branches: ["main", "backend/self-hosted-foundation", "infra/coolify-backend-production"]
     paths:
       - "backend/**"
       - ".github/workflows/backend-check.yml"
