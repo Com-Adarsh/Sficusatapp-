@@ -101,3 +101,66 @@ export const myNotifications = query({
     return await ctx.db.query("notifications").withIndex("by_user_created", q => q.eq("userId", user.legacyId)).order("desc").take(50);
   },
 });
+
+export const myAcademicProfile = query({
+  args: {},
+  returns: v.union(
+    v.null(),
+    v.object({
+      userId: v.string(),
+      fullName: v.string(),
+      email: v.string(),
+      studentId: v.union(v.null(), v.string()),
+      rollNumber: v.union(v.null(), v.string()),
+      departmentId: v.union(v.null(), v.string()),
+      programme: v.union(v.null(), v.string()),
+      semester: v.union(v.null(), v.number()),
+      year: v.union(v.null(), v.number()),
+      scheme: v.union(v.null(), v.string()),
+      campus: v.union(v.null(), v.string()),
+      verificationStatus: v.string(),
+    }),
+  ),
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+    const user = await ctx.db.query("users").withIndex("by_legacy_id", (q) => q.eq("legacyId", identity.subject)).unique();
+    if (!user) return null;
+    const profile = await ctx.db.query("studentProfiles").withIndex("by_user", (q) => q.eq("userId", user.legacyId)).unique();
+    if (!profile) return {
+      userId: user.legacyId, fullName: user.fullName, email: user.email,
+      studentId: null, rollNumber: null, departmentId: null, programme: null,
+      semester: null, year: null, scheme: null, campus: null, verificationStatus: "incomplete",
+    };
+    return {
+      userId: user.legacyId, fullName: user.fullName, email: user.email,
+      studentId: profile.studentId ?? null, rollNumber: profile.rollNumber ?? null,
+      departmentId: profile.departmentId ?? null, programme: profile.programme ?? null,
+      semester: profile.semester ?? null, year: profile.year ?? null,
+      scheme: profile.scheme ?? null, campus: profile.campus ?? null,
+      verificationStatus: profile.verificationStatus,
+    };
+  },
+});
+
+export const saveAcademicProfile = mutation({
+  args: {
+    studentId: v.optional(v.string()), rollNumber: v.optional(v.string()),
+    departmentId: v.optional(v.string()), programme: v.optional(v.string()),
+    semester: v.optional(v.number()), year: v.optional(v.number()),
+    scheme: v.optional(v.string()), campus: v.optional(v.string()),
+  },
+  returns: v.string(),
+  handler: async (ctx, args) => {
+    const user = await ensureUser(ctx);
+    const now = Date.now();
+    const existing = await ctx.db.query("studentProfiles").withIndex("by_user", (q) => q.eq("userId", user.legacyId)).unique();
+    const payload = { ...args, userId: user.legacyId, verificationStatus: "self_declared", updatedAt: now };
+    if (existing) {
+      await ctx.db.patch(existing._id, payload);
+      return existing.legacyId ?? existing._id;
+    }
+    const id = await ctx.db.insert("studentProfiles", { ...payload, createdAt: now });
+    return id;
+  },
+});
