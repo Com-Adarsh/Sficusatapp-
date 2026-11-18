@@ -86,7 +86,7 @@ export default function Profile() {
               <label>Department
                 <select value={form.departmentId} onChange={(e) => set("departmentId", e.target.value)}>
                   <option value="">Select department</option>
-                  {(departments ?? []).map((d) => <option key={d.legacyId} value={d.legacyId}>{d.name}</option>)}
+                  {(departments ?? []).map((d: { legacyId: string; name: string }) => <option key={d.legacyId} value={d.legacyId}>{d.name}</option>)}
                 </select>
               </label>
               <label>Programme<input value={form.programme} onChange={(e) => set("programme", e.target.value)} placeholder="e.g. Integrated M.Sc. Statistics" /></label>
