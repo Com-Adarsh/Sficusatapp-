@@ -17,7 +17,7 @@ export default defineSchema({
     userId: v.string(), studentId: v.optional(v.string()), rollNumber: v.optional(v.string()),
     departmentId: v.optional(v.string()), programme: v.optional(v.string()),
     semester: v.optional(v.number()), year: v.optional(v.number()),
-    campus: v.optional(v.string()), admissionYear: v.optional(v.number()),
+    campus: v.optional(v.string()), scheme: v.optional(v.string()), admissionYear: v.optional(v.number()),
     graduationYear: v.optional(v.number()), verificationStatus: status, ...timestamps,
   }).index("by_user", ["userId"]).index("by_department", ["departmentId"])
     .index("by_roll_number", ["rollNumber"]),
