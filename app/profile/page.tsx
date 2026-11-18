@@ -1,7 +1,7 @@
 "use client";
 
 import PageShell from "../components/PageShell";
-import { api } from "@/convex/_generated/api";
+import { api } from "@/lib/convex-api";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 
