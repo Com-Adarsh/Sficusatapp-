@@ -153,12 +153,13 @@ export const saveAcademicProfile = mutation({
   returns: v.string(),
   handler: async (ctx, args) => {
     const user = await ensureUser(ctx);
+    if (!user) throw new Error("Unable to provision user");
     const now = Date.now();
     const existing = await ctx.db.query("studentProfiles").withIndex("by_user", (q) => q.eq("userId", user.legacyId)).unique();
     const payload = { ...args, userId: user.legacyId, verificationStatus: "self_declared", updatedAt: now };
     if (existing) {
       await ctx.db.patch(existing._id, payload);
-      return existing.legacyId ?? existing._id;
+      return String(existing._id);
     }
     const id = await ctx.db.insert("studentProfiles", { ...payload, createdAt: now });
     return String(id);
