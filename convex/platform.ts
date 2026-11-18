@@ -161,6 +161,6 @@ export const saveAcademicProfile = mutation({
       return existing.legacyId ?? existing._id;
     }
     const id = await ctx.db.insert("studentProfiles", { ...payload, createdAt: now });
-    return id;
+    return String(id);
   },
 });
