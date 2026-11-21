@@ -1,0 +1,3 @@
+-- Intentionally empty. The CUSAT catalogue is seeded explicitly with:
+-- npm run seed:catalog
+-- Development/demo fixtures belong in scripts/seed-demo.ts and must never run in production.
