@@ -4,8 +4,10 @@ Values that must not be invented and must be supplied or confirmed before produc
 
 ## Required contacts
 - [ ] Aashraya coordinator name
+- [ ] Aashraya public contact environment value (phone/WhatsApp or neutral no-contact wording)
 - [ ] Aashraya coordinator phone/WhatsApp
 - [ ] Sahayi coordinator name
+- [ ] Sahayi public contact environment value (phone/WhatsApp or neutral no-contact wording)
 - [ ] Sahayi coordinator phone/WhatsApp
 - [ ] Official escalation contact(s)
 - [ ] Official anti-ragging contact(s)
