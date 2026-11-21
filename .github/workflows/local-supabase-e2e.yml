@@ -44,7 +44,14 @@ jobs:
       - name: Start production server
         run: |
           nohup npm run start > /tmp/sficusatapp-next.log 2>&1 &
-          npx wait-on http://127.0.0.1:3000
+          for i in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3000/ > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/sficusatapp-next.log
+          exit 1
 
       - name: Run Playwright against local server only
         env:
