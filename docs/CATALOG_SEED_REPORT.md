@@ -3,8 +3,9 @@
 Source: `lib/cusat-catalog.ts` on `phase-1-supabase-foundation`.
 
 ## Departments
-- 33 department/school/centre entries are present.
+- 32 department/school/centre entries are present.
 - IDs are already stable slugs and are retained as stable database slugs.
+- 104 programme entries are present in the source catalogue.
 
 ## Programme normalisation
 The catalogue contains programme names with inconsistent spacing:
