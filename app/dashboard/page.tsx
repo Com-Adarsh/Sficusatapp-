@@ -3,14 +3,16 @@
 import PageShell from "../components/PageShell";
 import { api } from "@/lib/convex-api";
 import { useQuery } from "convex/react";
+import { ArrowRight, BookOpen, BriefcaseBusiness, CircleHelp, GraduationCap, Search, Sparkles } from "lucide-react";
 
 const actions = [
-  ["Ask Study AI", "/ai"],
-  ["Find notes", "/resources"],
-  ["Browse opportunities", "/opportunities"],
-  ["Academic helpdesk", "/support/helpdesk/academic"],
-  ["Open scholarships", "/scholarships"],
-];
+  ["Ask Study AI", "/ai", Sparkles],
+  ["Find notes & PYQs", "/resources", BookOpen],
+  ["Academic Helpdesk", "/support/helpdesk/academic", CircleHelp],
+  ["Scholarships", "/scholarships", GraduationCap],
+  ["Opportunities", "/opportunities", BriefcaseBusiness],
+  ["Search campus", "/search", Search],
+] as const;
 
 export default function Dashboard() {
   const profile = useQuery(api.platform.myAcademicProfile);
@@ -22,57 +24,95 @@ export default function Dashboard() {
     <PageShell>
       <section className="hero compact">
         <div className="shell">
-          <div className="eyebrow">Student Dashboard</div>
-          <h1>Your campus, <em>your dashboard.</em></h1>
-          {profile ? (
-            <p>Welcome back, {profile.fullName}. Your academic context is now connected to the platform.</p>
-          ) : (
-            <p>Set your programme, semester and scheme once. The platform can then personalise resources, opportunities and support for you.</p>
-          )}
-          <div className="actions">
-            <a className="btn primary" href="/profile">Set up academic profile</a>
-            <a className="btn" href="/search">Search everything</a>
-          </div>
+          <div className="eyebrow">Student dashboard</div>
+          <h1>Your campus, <em>in one place.</em></h1>
+          <p>
+            Your academic profile connects the services you use most — learning,
+            support, opportunities and student initiatives.
+          </p>
         </div>
       </section>
 
-      <section className="section">
+      <section className="section" style={{ paddingTop: 10 }}>
         <div className="shell">
-          <div className="grid4">
-            <div className="stat"><b>{profile?.semester ?? "—"}</b><span>Current semester</span></div>
-            <div className="stat"><b>{profile?.scheme ?? "—"}</b><span>Scheme</span></div>
-            <div className="stat"><b>AI</b><span>Academic assistant</span></div>
-            <div className="stat"><b>24/7</b><span>Student services</span></div>
-          </div>
+          <div className="dashboard-pro">
+            <div className="dashboard-welcome">
+              <div className="eyebrow">Welcome back</div>
+              <h2>{profile?.fullName || "CUSAT student"}</h2>
+              <p>
+                {profile?.programme
+                  ? "Your academic context is ready. Use the shortcuts below to continue where you left off."
+                  : "Set up your academic profile once to make resources, helpdesk and future AI features more relevant to you."}
+              </p>
 
-          <div className="grid2" style={{ marginTop: 18 }}>
-            <div className="card">
-              <span className="chip">My academics</span>
-              <h3 style={{ marginTop: 12 }}>{academicLabel}</h3>
-              <p>{profile?.departmentId ? "Your department context is saved and can drive future academic filtering." : "Choose your programme, department, semester and scheme to unlock personalised academic resources."}</p>
-              <div className="list" style={{ marginTop: 12 }}>
-                <a className="listitem" href="/resources"><strong>Notes & question papers</strong><span>→</span></a>
-                <a className="listitem" href="/support/helpdesk/academic"><strong>Academic Helpdesk</strong><span>→</span></a>
-                <a className="listitem" href="/scholarships"><strong>Scholarship opportunities</strong><span>→</span></a>
+              <div className="dashboard-profile">
+                <div className="dashboard-avatar">
+                  {(profile?.fullName || "C").trim().charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <small>Academic profile</small>
+                  <strong>{academicLabel}</strong>
+                </div>
+              </div>
+
+              <div className="actions" style={{ marginTop: 17 }}>
+                <a className="btn primary" href="/profile">
+                  {profile?.programme ? "Edit profile" : "Set up profile"} <ArrowRight size={15} />
+                </a>
+                <a className="btn" href="/ai">Open Study AI</a>
               </div>
             </div>
 
-            <div className="card">
-              <span className="chip">Quick actions</span>
-              <h3 style={{ marginTop: 12 }}>What do you want to do?</h3>
-              <div className="list">
-                {actions.map(([title, href]) => (
-                  <a className="listitem" href={href} key={title}><strong>{title}</strong><span>→</span></a>
-                ))}
+            <div className="dashboard-panel">
+              <div className="dashboard-panel-head">
+                <div>
+                  <h3>Academic context</h3>
+                  <p>Used to personalise your student experience.</p>
+                </div>
+                <a href="/profile" className="reference-text-link">Edit</a>
+              </div>
+
+              <div className="dashboard-profile-grid">
+                <div className="dashboard-mini">
+                  <span>Programme</span>
+                  <strong>{profile?.programme || "Not set"}</strong>
+                </div>
+                <div className="dashboard-mini">
+                  <span>Semester</span>
+                  <strong>{profile?.semester ? "Semester " + profile.semester : "Not set"}</strong>
+                </div>
+                <div className="dashboard-mini">
+                  <span>Scheme</span>
+                  <strong>{profile?.scheme || "Not set"}</strong>
+                </div>
+              </div>
+
+              <div className="dashboard-foundation">
+                <strong>One profile. Many services.</strong>
+                <p>These details can power department-aware resources, helpdesk routing and subject-specific Study AI without repeatedly asking you for the same information.</p>
               </div>
             </div>
           </div>
 
-          <div className="notice" style={{ marginTop: 18 }}>
-            <div className="icon" style={{ margin: 0 }}>i</div>
-            <div>
-              <strong>Student OS foundation is live</strong>
-              <p>Your existing resources, helpdesk, scholarship, opportunities and student initiatives remain separate modules, but they can now converge around one academic profile and dashboard.</p>
+          <div className="dashboard-panel" style={{ marginTop: 16 }}>
+            <div className="dashboard-panel-head">
+              <div>
+                <h3>Quick actions</h3>
+                <p>Common student tasks, without digging through menus.</p>
+              </div>
+            </div>
+            <div className="dashboard-action-grid">
+              {actions.map(([title, href, Icon]) => (
+                <a className="dashboard-action" href={href} key={title}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span className="icon" style={{ width: 34, height: 34, margin: 0 }}>
+                      <Icon size={16} aria-hidden="true" />
+                    </span>
+                    <strong>{title}</strong>
+                  </span>
+                  <span><ArrowRight size={16} aria-hidden="true" /></span>
+                </a>
+              ))}
             </div>
           </div>
         </div>
