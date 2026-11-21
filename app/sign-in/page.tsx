@@ -1,9 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-export default function SignIn() {
+function SignInForm() {
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") || "/dashboard";
+  const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -16,7 +21,7 @@ export default function SignIn() {
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) setError(error.message);
-    else window.location.href = "/dashboard";
+    else window.location.href = safeNext;
     setBusy(false);
   }
 
@@ -36,5 +41,14 @@ export default function SignIn() {
         <p className="fine">New here? <a href="/register" style={{ color: "var(--red)", fontWeight: 700 }}>Create an account</a></p>
       </div>
     </main>
+  );
+}
+
+
+export default function SignIn() {
+  return (
+    <Suspense fallback={<main className="auth"><div className="authcard">Loading sign in…</div></main>}>
+      <SignInForm />
+    </Suspense>
   );
 }
