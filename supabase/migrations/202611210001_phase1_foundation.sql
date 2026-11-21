@@ -428,7 +428,7 @@ create policy blood_requests_owner on public.blood_requests for all to authentic
 create policy blood_requests_coordinator on public.blood_requests for select to authenticated using(private.has_role('aashraya_coordinator') or private.has_role('admin'));
 create policy donors_owner on public.donors for all to authenticated using(owner_id=auth.uid()) with check(owner_id=auth.uid());
 create policy donor_contact_owner on public.donor_contact_details for all to authenticated using(owner_id=auth.uid()) with check(owner_id=auth.uid());
-create policy donor_contact_coordinator on public.donor_contact_details for select to authenticated using(private.has_role('aashraya_coordinator') or private.has_role('admin'));
+create policy donor_contact_coordinator on public.donor_contact_details for select to authenticated using((private.has_role('aashraya_coordinator') or private.has_role('admin')) and exists(select 1 from public.donors d where d.id=donor_id and d.consent=true));
 create policy matches_coordinator on public.donor_matches for all to authenticated using(private.has_role('aashraya_coordinator') or private.has_role('admin')) with check(private.has_role('aashraya_coordinator') or private.has_role('admin'));
 create policy camps_public on public.donation_camps for select to anon,authenticated using(status='approved');
 create policy camps_coordinator on public.donation_camps for all to authenticated using(private.has_role('aashraya_coordinator') or private.has_role('admin')) with check(private.has_role('aashraya_coordinator') or private.has_role('admin'));
