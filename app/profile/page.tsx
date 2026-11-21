@@ -9,6 +9,7 @@ import { CUSAT_DEPARTMENTS, CUSAT_PROGRAMMES } from "@/lib/cusat-catalog";
 
 export default function Profile() {
   const profile = useQuery(api.platform.myAcademicProfile);
+  const departments = useQuery(api.platform.listDepartments, {});
   const saveProfile = useMutation(api.platform.saveAcademicProfile);
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -30,10 +31,19 @@ export default function Profile() {
   useEffect(() => {
     if (!profile) return;
 
+    const legacyDepartmentName = departments?.find(
+      (department: { legacyId: string; name: string }) =>
+        department.legacyId === profile.departmentId,
+    )?.name;
+    const canonicalDepartmentId = CUSAT_DEPARTMENTS.find(
+      (department) =>
+        department.id === profile.departmentId ||
+        department.name === legacyDepartmentName,
+    )?.id;
     const matchedProgramme =
       CUSAT_PROGRAMMES.find(
         (programme) =>
-          programme.departmentId === profile.departmentId &&
+          programme.departmentId === (canonicalDepartmentId ?? profile.departmentId) &&
           programme.name === profile.programme,
       ) ??
       CUSAT_PROGRAMMES.find((programme) => programme.name === profile.programme);
