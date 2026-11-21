@@ -43,4 +43,4 @@ export const internalQuery = internalQueryGeneric;
  *
  * This function will be allowed to modify your Convex database and will be accessible from the client.
  *
- * @param func - The mutation function. It receives a {@link MutationCtx} as its firs¶»§q«^
+ * @param func - The mutation function. It receives a {@link MutationCtx} as its firsï¿½ï¿½ï¿½qï¿½^

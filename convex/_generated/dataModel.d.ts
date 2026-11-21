@@ -52,4 +52,4 @@ export type Id<TableName extends TableNames | SystemTableNames> =
  * A type describing your Convex data model.
  *
  * This type includes information about what tables you have, the type of
- * documents stored in th¶»§q«^
+ * documents stored in thï¿½ï¿½ï¿½qï¿½^
