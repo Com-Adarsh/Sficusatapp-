@@ -1,10 +1,14 @@
 import "server-only";
-
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 
 type AppRole = Database["public"]["Enums"]["user_role"];
+
+function safeNextPath(pathname: string) {
+  if (!pathname.startsWith("/") || pathname.startsWith("//") || pathname.includes("\\") || /[\r\n]/.test(pathname)) return "/dashboard";
+  return pathname;
+}
 
 export async function getCurrentUser() {
   const supabase = await createClient();
@@ -13,24 +17,19 @@ export async function getCurrentUser() {
   return data.user;
 }
 
-export async function getCurrentRoles(userId?: string): Promise<AppRole[]> {
-  const supabase = await createClient();
-  const user = userId ?? (await supabase.auth.getUser()).data.user?.id;
-  if (!user) return [];
-  const { data } = await supabase.from("user_roles").select("role").eq("user_id", user);
-  return (data ?? []).map((row) => row.role as AppRole);
-}
-
-export async function requireUser(nextPath: string) {
+export async function requireUser(nextPath = "/dashboard") {
   const user = await getCurrentUser();
-  if (!user) redirect(`/sign-in?next=${encodeURIComponent(nextPath)}`);
+  if (!user) redirect(`/sign-in?next=${encodeURIComponent(safeNextPath(nextPath))}`);
   return user;
 }
 
-export async function requireRole(allowed: AppRole | AppRole[], nextPath: string) {
+export async function requireRole(allowed: AppRole | AppRole[], nextPath = "/dashboard") {
   const user = await requireUser(nextPath);
-  const roles = await getCurrentRoles(user.id);
+  const supabase = await createClient();
   const allowedRoles = Array.isArray(allowed) ? allowed : [allowed];
-  if (!allowedRoles.some((role) => roles.includes(role))) redirect("/forbidden");
-  return { user, roles };
+  for (const role of allowedRoles) {
+    const { data, error } = await supabase.rpc("current_user_has_role", { required_role: role });
+    if (!error && data === true) return { user, role };
+  }
+  redirect("/403");
 }
