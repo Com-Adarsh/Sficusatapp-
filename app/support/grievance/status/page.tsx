@@ -1,6 +1,6 @@
 "use client";
 import { FormEvent, useState } from "react";
-import PageShell from "../../components/PageShell";
+import PageShell from "../../../components/PageShell";
 
 type Result = { title:string; description:string; category:string; status:string; anonymous:boolean; created_at:string; updated_at:string; grievance_updates?: {status:string;note:string|null;created_at:string}[] };
 
