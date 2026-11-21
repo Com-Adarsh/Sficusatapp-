@@ -3,7 +3,7 @@
 import PageShell from "../components/PageShell";
 import { api } from "@/lib/convex-api";
 import { createClient as createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { useQuery } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
@@ -22,7 +22,8 @@ const starterPrompts = [
 
 function AIPageContent() {
   const searchParams = useSearchParams();
-  const profile = useQuery(api.platform.myAcademicProfile);
+  const { isLoading: convexAuthLoading, isAuthenticated: convexAuthenticated } = useConvexAuth();
+  const profile = useQuery(api.platform.myAcademicProfile, convexAuthenticated ? {} : "skip");
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [subject, setSubject] = useState(searchParams.get("subject") ?? "");
   const [input, setInput] = useState("");
@@ -126,7 +127,12 @@ function AIPageContent() {
 
       <section className="section">
         <div className="shell">
-          {signedIn === false ? (
+          {signedIn === null || convexAuthLoading ? (
+            <div className="authcard">
+              <h2>Connecting your student session…</h2>
+              <p>Securely checking your account before opening the Study Assistant.</p>
+            </div>
+          ) : signedIn === false || !convexAuthenticated ? (
             <div className="authcard">
               <h2>Sign in to use the Study Assistant</h2>
               <p>Your questions are tied to your student account and protected by a daily usage limit.</p>
