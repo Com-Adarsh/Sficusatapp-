@@ -3,7 +3,8 @@
 import PageShell from "../components/PageShell";
 import { api } from "@/lib/convex-api";
 import { useQuery } from "convex/react";
-import { ArrowRight, BookOpen, BriefcaseBusiness, CircleHelp, GraduationCap, Search, Sparkles } from "lucide-react";
+import { ArrowRight, BookOpen, BriefcaseBusiness, CircleHelp, GraduationCap, Search, Sparkles, LogOut } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 const actions = [
   ["Ask Study AI", "/ai", Sparkles],
@@ -94,7 +95,7 @@ export default function DashboardClient() {
             </div>
           </div>
 
-          <div className="dashboard-panel" style={{ marginTop: 16 }}>
+          <div className="dashboard-panel" style={{ marginTop: 16 }}><div style={{display:"flex",justifyContent:"flex-end",marginBottom:12}}><button className="btn" type="button" onClick={async()=>{await createClient().auth.signOut();window.location.assign("/sign-in");}}><LogOut size={15}/> Sign out</button></div>
             <div className="dashboard-panel-head">
               <div>
                 <h3>Quick actions</h3>
