@@ -3,12 +3,13 @@
 import PageShell from "../components/PageShell";
 import AcademicSelectors from "../components/AcademicSelectors";
 import { api } from "@/lib/convex-api";
-import { useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import { CUSAT_DEPARTMENTS, CUSAT_PROGRAMMES } from "@/lib/cusat-catalog";
 
 export default function Profile() {
-  const profile = useQuery(api.platform.myAcademicProfile);
+  const { isLoading: convexAuthLoading, isAuthenticated: convexAuthenticated } = useConvexAuth();
+  const profile = useQuery(api.platform.myAcademicProfile, convexAuthenticated ? {} : "skip");
   const departments = useQuery(api.platform.listDepartments, {});
   const saveProfile = useMutation(api.platform.saveAcademicProfile);
   const [saved, setSaved] = useState(false);
