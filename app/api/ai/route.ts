@@ -1,4 +1,4 @@
-import { generateText } from "ai";
+import { generateText, type ModelMessage } from "ai";
 import { ConvexHttpClient } from "convex/browser";
 import { anyApi } from "convex/server";
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
@@ -99,25 +99,28 @@ export async function POST(req: Request) {
     const semester = profile?.semester ? String(profile.semester) : "not specified";
 
     const lastUserIndex = safeMessages.map((message) => message.role).lastIndexOf("user");
-    const modelMessages = safeMessages.map((message) => ({
-      role: message.role,
-      content: message.content,
-    })) as Array<{ role: "user" | "assistant"; content: string | Array<{ type: "text"; text: string } | { type: "image"; image: Buffer; mediaType: string }> }>;
+    const modelMessages: ModelMessage[] = safeMessages.map((message) =>
+      message.role === "user"
+        ? { role: "user", content: message.content }
+        : { role: "assistant", content: message.content },
+    );
 
     if (image && lastUserIndex >= 0) {
       const last = modelMessages[lastUserIndex];
-      const text = typeof last.content === "string" ? last.content : "";
-      modelMessages[lastUserIndex] = {
-        role: "user",
-        content: [
-          ...(text ? [{ type: "text" as const, text }] : []),
-          {
-            type: "image" as const,
-            image: Buffer.from(image.data, "base64"),
-            mediaType: image.mediaType,
-          },
-        ],
-      };
+      if (last.role === "user") {
+        const text = typeof last.content === "string" ? last.content : "";
+        modelMessages[lastUserIndex] = {
+          role: "user",
+          content: [
+            ...(text ? [{ type: "text" as const, text }] : []),
+            {
+              type: "image" as const,
+              image: Buffer.from(image.data, "base64"),
+              mediaType: image.mediaType,
+            },
+          ],
+        };
+      }
     }
 
     const result = await generateText({
@@ -144,7 +147,7 @@ export async function POST(req: Request) {
       remaining: quota.remaining,
       limit: quota.limit,
       grounded: false,
-      model: result.model.modelId,
+      model: MODEL,
     });
   } catch (error) {
     console.error("AI route error", error);
