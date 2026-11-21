@@ -121,7 +121,6 @@ export default function Browse() {
                 ))}
             </tbody>
             </table>
-            </table>
           </div>}
 
           <div className="notice" style={{ marginTop: 18 }}>
