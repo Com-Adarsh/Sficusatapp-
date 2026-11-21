@@ -2,19 +2,15 @@
 
 import PageShell from "../../components/PageShell";
 import { useMemo, useState } from "react";
+import { useQuery } from "convex/react";
+import { api } from "@/lib/convex-api";
 import {
   CUSAT_DEPARTMENTS,
   CUSAT_PROGRAMMES,
   programmesForDepartment,
 } from "@/lib/cusat-catalog";
 
-const rows = [
-  ["Probability & Random Variables", "Department of Statistics", "Five- Year Integrated M.Sc. in Statistics", "2025–26", "Sem 2", "STA201", "Notes"],
-  ["Statistical Inference", "Department of Statistics", "MSc Statistics", "2025–26", "Sem 4", "STA401", "Question Paper"],
-  ["Mathematical Statistics", "Department of Mathematics", "Five- Year Integrated M.Sc. in Mathematics", "2025–26", "Sem 3", "MAT301", "Notes"],
-  ["Academic Calendar", "All departments", "All programmes", "2026–27", "All", "—", "Academic Update"],
-  ["Statistical Computing", "Department of Statistics", "MSc Statistics", "2025–26", "Sem 4", "STA405", "Notes"],
-];
+
 
 export default function Browse() {
   const [q, setQ] = useState("");
@@ -23,6 +19,13 @@ export default function Browse() {
   const [year, setYear] = useState("All years");
   const [sem, setSem] = useState("All semesters");
   const [type, setType] = useState("All types");
+  const resources = useQuery(api.platform.listPublishedResources, {
+    departmentId: dept === "All departments" ? undefined : CUSAT_DEPARTMENTS.find((d) => d.name === dept)?.id,
+    programme: programme === "All programmes" ? undefined : programme,
+    semester: sem === "All semesters" ? undefined : Number(sem.replace("Sem ", "")),
+    category: type === "All types" ? undefined : type,
+    search: q || undefined,
+  });
 
   const programmeOptions = useMemo(
     () => dept === "All departments"
@@ -31,19 +34,7 @@ export default function Browse() {
     [dept],
   );
 
-  const filtered = useMemo(
-    () =>
-      rows.filter(
-        (r) =>
-          (dept === "All departments" || r[1] === dept) &&
-          (programme === "All programmes" || r[2] === programme) &&
-          (year === "All years" || r[3] === year) &&
-          (sem === "All semesters" || r[4] === sem) &&
-          (type === "All types" || r[6] === type) &&
-          r.join(" ").toLowerCase().includes(q.toLowerCase()),
-      ),
-    [q, dept, programme, year, sem, type],
-  );
+  const filtered = resources ?? [];
 
   function changeDepartment(value: string) {
     setDept(value);
@@ -97,36 +88,40 @@ export default function Browse() {
           </div>
 
           <div className="chips">
-            <span className="chip">{filtered.length} catalogue records</span>
+            <span className="chip">{filtered.length} published resources</span>
             <span className="chip">Department-wise</span>
             <span className="chip">Programme-wise</span>
             <span className="chip">Semester-wise</span>
           </div>
 
-          <div className="table-wrap" style={{ marginTop: 18 }}>
+          {resources === undefined ? <div className="notice" style={{ marginTop: 18 }}><div className="icon" style={{ margin: 0 }}>…</div><div><strong>Loading published resources</strong><p>Fetching the live moderated catalogue.</p></div></div> : null}
+
+          {resources?.length === 0 ? <div className="empty" style={{ marginTop: 18 }}><strong>No published resources yet</strong><p>The live catalogue is empty for these filters. Upload a resource and have it approved by a coordinator.</p><a className="btn primary" href="/resources/upload">Upload a resource</a></div> : null}
+
+          {resources && resources.length > 0 && <div className="table-wrap" style={{ marginTop: 18 }}>
             <table className="table">
               <thead><tr><th>Course / resource</th><th>Department</th><th>Programme</th><th>Year</th><th>Semester</th><th>Course code</th><th>Type</th><th /></tr></thead>
               <tbody>
-                {filtered.map((r) => (
-                  <tr key={r.join("|")}>
-                    <td><strong>{r[0]}</strong></td>
-                    <td>{r[1]}</td>
-                    <td>{r[2]}</td>
-                    <td>{r[3]}</td>
-                    <td>{r[4]}</td>
-                    <td>{r[5]}</td>
-                    <td><span className="status">{r[6]}</span></td>
+                {filtered.map((r: { legacyId: string; title: string; departmentId?: string; programme?: string; semester?: number; subject?: string; category: string }) => (
+                  <tr key={r.legacyId}>
+                    <td><strong>{r.title}</strong></td>
+                    <td>{CUSAT_DEPARTMENTS.find((d) => d.id === r.departmentId)?.name ?? "—"}</td>
+                    <td>{r.programme ?? "—"}</td>
+                    <td>{year}</td>
+                    <td>{r.semester ? `Sem ${r.semester}` : "—"}</td>
+                    <td>{r.subject ?? "—"}</td>
+                    <td><span className="status">{r.category}</span></td>
                     <td>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        <button className="btn" type="button">Preview</button>
-                        <a className="btn primary" href={"/ai?subject=" + encodeURIComponent(r[0])}>Ask AI</a>
+                        <button className="btn" type="button" disabled>Preview</button>
+                        <a className="btn primary" href={"/ai?subject=" + encodeURIComponent(r.subject ?? r.title)}>Ask AI</a>
                       </div>
                     </td>
                   </tr>
                 ))}
-              </tbody>
+            </tbody>
             </table>
-          </div>
+          </div>}
 
           <div className="notice" style={{ marginTop: 18 }}>
             <div className="icon" style={{ margin: 0 }}>i</div>
