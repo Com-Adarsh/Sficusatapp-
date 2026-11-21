@@ -480,7 +480,7 @@ create policy resource_files_moderator_read on storage.objects
 for select to authenticated
 using (
  bucket_id='resource-files'
- and private.has_role('moderator'::public.user_role) or private.has_role('admin'::public.user_role)
+ and (private.has_role('moderator'::public.user_role) or private.has_role('admin'::public.user_role))
 );
 
 grant usage on schema private to authenticated;
