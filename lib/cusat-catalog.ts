@@ -46,7 +46,7 @@ export const CUSAT_DEPARTMENTS: AcademicDepartment[] = [
   { id: "centre-for-budget-studies", name: "Centre for Budget Studies" },
   { id: "centre-for-integrated-studies", name: "Centre for Integrated Studies" },
   { id: "centre-research-ethics-protocols", name: "Prof NR Madhava Menon Interdisciplinary Centre for Research Ethics and Protocols" },
-  { id: "ddau-kaushal-kendra", name: "DDU Kaushal Kendra" },
+  { id: "ddu-kaushal-kendra", name: "DDU Kaushal Kendra" },
   { id: "iuciprs", name: "IUCIPRS" },
   { id: "ncaah", name: "NCAAH" },
 ];
@@ -110,7 +110,7 @@ export const CUSAT_PROGRAMMES: AcademicProgramme[] = [
   { id: "bsc-llb-h-computer-science", level: "UG", category: "UG Law Programmes", name: "Five Year B.Sc LL.B(Hons.) (Computer Science)", departmentId: "centre-research-ethics-protocols", durationYears: 5 },
 
   // UG · Other
-  { id: "b-voc-data-science-analytics", level: "UG", category: "Other UG Programmes", name: "B.Voc (Honours) in Data Science and Analytics", departmentId: "ddau-kaushal-kendra", durationYears: 4 },
+  { id: "b-voc-data-science-analytics", level: "UG", category: "Other UG Programmes", name: "B.Voc (Honours) in Data Science and Analytics", departmentId: "ddu-kaushal-kendra", durationYears: 4 },
   { id: "btech-lateral-entry", level: "UG", category: "Other UG Programmes", name: "B.Tech Lateral Entry", departmentId: "school-of-engineering", durationYears: 3 },
 
   // PG · MA
@@ -154,8 +154,8 @@ export const CUSAT_PROGRAMMES: AcademicProgramme[] = [
   { id: "llm-two-year", level: "PG", category: "PG LAW Programmes", name: "LL.M. (Two year)", departmentId: "school-of-legal-studies", durationYears: 2 },
 
   // PG · Other
-  { id: "mvoc-software-application-development", level: "PG", category: "Other PG Programmes", name: "M.Voc Programme in Software Application Development", departmentId: "ddau-kaushal-kendra", durationYears: 2 },
-  { id: "mvoc-banking-finance", level: "PG", category: "Other PG Programmes", name: "M.Voc. programme in Banking and Finance", departmentId: "ddau-kaushal-kendra", durationYears: 2 },
+  { id: "mvoc-software-application-development", level: "PG", category: "Other PG Programmes", name: "M.Voc Programme in Software Application Development", departmentId: "ddu-kaushal-kendra", durationYears: 2 },
+  { id: "mvoc-banking-finance", level: "PG", category: "Other PG Programmes", name: "M.Voc. programme in Banking and Finance", departmentId: "ddu-kaushal-kendra", durationYears: 2 },
   { id: "msc-bioethics", level: "PG", category: "Other PG Programmes", name: "M.Sc Bioethics", departmentId: "centre-research-ethics-protocols", durationYears: 2 },
 
   // PG · MBA
