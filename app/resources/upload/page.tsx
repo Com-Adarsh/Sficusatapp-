@@ -1,6 +1,7 @@
 "use client";
 
 import PageShell from "../../components/PageShell";
+import AcademicSelectors from "../../components/AcademicSelectors";
 import { useState } from "react";
 import {
   ArrowRight,
@@ -9,9 +10,7 @@ import {
   Check,
   ChevronDown,
   FileText,
-  GraduationCap,
   Layers3,
-  Paperclip,
   Send,
   ShieldCheck,
   Tag,
@@ -19,12 +18,14 @@ import {
   X,
 } from "lucide-react";
 
-const semesters = ["1","2","3","4","5","6","7","8","9","10"];
-
 export default function Upload() {
   const [submitted, setSubmitted] = useState(false);
   const [fileName, setFileName] = useState("");
   const [fileSize, setFileSize] = useState("");
+  const [departmentId, setDepartmentId] = useState("");
+  const [programmeId, setProgrammeId] = useState("");
+  const [courseName, setCourseName] = useState("");
+  const [semester, setSemester] = useState("");
 
   const handleFile = (file?: File) => {
     if (!file) return;
@@ -98,41 +99,29 @@ export default function Upload() {
                   <div>
                     <span>01 · Resource details</span>
                     <h2>Tell us about the resource</h2>
-                    <p>This helps students discover it through the right course and semester.</p>
+                    <p>This helps students discover it through the right department, programme, semester and course.</p>
                   </div>
                 </div>
 
                 <form onSubmit={(e) => { e.preventDefault(); setSubmitted(true); }}>
                   <div className="upload-form-grid">
-                    <label className="upload-field">
-                      <span><GraduationCap size={16} /> Department <b>*</b></span>
-                      <div className="upload-control-wrap">
-                        <select required defaultValue="Statistics">
-                          <option>Statistics</option>
-                          <option>Mathematics</option>
-                          <option>Computer Applications</option>
-                          <option>Physics</option>
-                          <option>Chemistry</option>
-                          <option>Other</option>
-                        </select>
-                        <ChevronDown size={17} />
-                      </div>
-                    </label>
-
-                    <label className="upload-field">
-                      <span><GraduationCap size={16} /> Programme <b>*</b></span>
-                      <div className="upload-control-wrap">
-                        <select required defaultValue="">
-                          <option value="" disabled>Select programme</option>
-                          <option>Integrated M.Sc.</option>
-                          <option>Integrated M.A.</option>
-                          <option>B.Sc.</option>
-                          <option>M.Sc.</option>
-                          <option>Other</option>
-                        </select>
-                        <ChevronDown size={17} />
-                      </div>
-                    </label>
+                    <AcademicSelectors
+                      departmentId={departmentId}
+                      programmeId={programmeId}
+                      onDepartmentChange={(value) => {
+                        setDepartmentId(value);
+                        setProgrammeId("");
+                      }}
+                      onProgrammeChange={setProgrammeId}
+                      showCourseName
+                      courseName={courseName}
+                      onCourseNameChange={setCourseName}
+                      courseNameRequired
+                      showSemester
+                      semester={semester}
+                      onSemesterChange={setSemester}
+                      semesterRequired
+                    />
 
                     <label className="upload-field">
                       <span><CalendarDays size={16} /> Academic year / batch</span>
@@ -140,23 +129,8 @@ export default function Upload() {
                     </label>
 
                     <label className="upload-field">
-                      <span><Layers3 size={16} /> Semester <b>*</b></span>
-                      <div className="upload-control-wrap">
-                        <select required defaultValue="1">
-                          {semesters.map((semester) => <option key={semester}>{semester}</option>)}
-                        </select>
-                        <ChevronDown size={17} />
-                      </div>
-                    </label>
-
-                    <label className="upload-field">
                       <span><Tag size={16} /> Course code</span>
                       <input placeholder="e.g. STA101" />
-                    </label>
-
-                    <label className="upload-field">
-                      <span><BookOpen size={16} /> Course name <b>*</b></span>
-                      <input required placeholder="e.g. Probability Theory" />
                     </label>
 
                     <label className="upload-field">
@@ -200,6 +174,7 @@ export default function Upload() {
                   >
                     <input
                       type="file"
+                      required
                       accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt"
                       onChange={(e) => handleFile(e.target.files?.[0])}
                     />
@@ -250,11 +225,12 @@ export default function Upload() {
                   <div className="upload-side-icon"><BookOpen size={21} /></div>
                   <span className="upload-side-kicker">Make it useful</span>
                   <h3>Help another student find it quickly.</h3>
-                  <p>Use a clear course name and resource title. Good metadata makes the Learning Space much easier to search.</p>
+                  <p>Use the official department and programme, then add the exact course/subject name. Good metadata makes the Learning Space much easier to search and later powers subject-specific AI.</p>
                   <div className="upload-tips">
-                    <div><Check size={15} /> Use the official course name</div>
-                    <div><Check size={15} /> Mention the unit or topic</div>
-                    <div><Check size={15} /> Choose the correct resource year</div>
+                    <div><Check size={15} /> Choose the official department</div>
+                    <div><Check size={15} /> Choose the matching programme</div>
+                    <div><Check size={15} /> Add the exact course / subject</div>
+                    <div><Check size={15} /> Mention the semester and year</div>
                   </div>
                 </div>
 
