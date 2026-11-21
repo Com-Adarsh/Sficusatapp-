@@ -50,7 +50,7 @@ export default function Profile() {
       scheme: profile.scheme ?? "",
       campus: profile.campus ?? "",
     });
-  }, [profile]);
+  }, [profile, departments]);
 
   const set = (key: keyof typeof form, value: string) =>
     setForm((old) => ({ ...old, [key]: value }));
