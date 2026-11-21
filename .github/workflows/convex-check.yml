@@ -19,7 +19,7 @@ jobs:
   convex:
     runs-on: ubuntu-latest
     env:
-      SUPABASE_AUTH_ISSUER: https://example.supabase.co/auth/v1
+      SUPABASE_AUTH_ISSUER: https://jwhyesglviptvklrclll.supabase.co/auth/v1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
