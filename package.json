@@ -13,7 +13,8 @@
     "seed:demo": "tsx scripts/seed-demo.ts",
     "prebuild": "CONVEX_AGENT_MODE=anonymous convex dev --once",
     "e2e": "playwright test",
-    "e2e:seed": "tsx scripts/seed-e2e-users.ts"
+    "e2e:seed": "tsx scripts/seed-e2e-users.ts",
+    "db:migrate:dev": "tsx scripts/apply-dev-migrations.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
