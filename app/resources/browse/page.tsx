@@ -102,7 +102,7 @@ export default function Browse() {
             <table className="table">
               <thead><tr><th>Course / resource</th><th>Department</th><th>Programme</th><th>Year</th><th>Semester</th><th>Course code</th><th>Type</th><th /></tr></thead>
               <tbody>
-                {filtered.map((r) => (
+                {filtered.map((r: { legacyId: string; title: string; departmentId?: string; programme?: string; semester?: number; subject?: string; category: string }) => (
                   <tr key={r.legacyId}>
                     <td><strong>{r.title}</strong></td>
                     <td>{CUSAT_DEPARTMENTS.find((d) => d.id === r.departmentId)?.name ?? "—"}</td>
