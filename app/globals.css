@@ -732,3 +732,8 @@ body{
   .pro-action-card{min-height:62px}.pro-action-card small{display:none}
   .pro-home-hero h1{font-size:35px}
 }
+
+@media(max-width:980px){
+  .pro-nav-links{display:none}
+  .pro-menu-button{display:grid}
+}
