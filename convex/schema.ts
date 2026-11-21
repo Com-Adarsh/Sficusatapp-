@@ -199,6 +199,13 @@ export default defineSchema({
     userId: v.string(), channel: v.string(), enabled: v.boolean(), type: v.optional(v.string()), ...timestamps,
   }).index("by_user", ["userId"]),
 
+  aiUsageDaily: defineTable({
+    userId: v.string(),
+    dayKey: v.string(),
+    messageCount: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user_day", ["userId", "dayKey"]),
+    
   auditLogs: defineTable({
     actorUserId: v.string(), action: v.string(), entityType: v.string(), entityId: v.optional(v.string()),
     beforeData: v.optional(v.string()), afterData: v.optional(v.string()), createdAt: v.number(),

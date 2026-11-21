@@ -5,6 +5,7 @@ import { api } from "@/lib/convex-api";
 import { useQuery } from "convex/react";
 
 const actions = [
+  ["Ask Study AI", "/ai"],
   ["Find notes", "/resources"],
   ["Browse opportunities", "/opportunities"],
   ["Academic helpdesk", "/support/helpdesk/academic"],
