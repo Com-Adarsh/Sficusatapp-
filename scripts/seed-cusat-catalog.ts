@@ -1,9 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
 import { CUSAT_DEPARTMENTS, CUSAT_PROGRAMMES } from "../lib/cusat-catalog";
+import { assertDevSupabaseTarget } from "./assert-dev-supabase";
 
 if (process.env.NODE_ENV === "production") {
   throw new Error("Catalogue seed is development-only and refuses to run in production.");
 }
+assertDevSupabaseTarget(process.env.SUPABASE_PROJECT_REF);
 
 const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
