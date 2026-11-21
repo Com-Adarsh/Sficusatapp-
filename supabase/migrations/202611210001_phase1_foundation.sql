@@ -392,7 +392,7 @@ create policy profiles_self on public.profiles for all to authenticated using(id
 create policy roles_self_read on public.user_roles for select to authenticated using(user_id=auth.uid());
 create policy roles_admin on public.user_roles for all to authenticated using(private.has_role('admin')) with check(private.has_role('admin'));
 create policy resources_owner on public.resources for all to authenticated using(owner_id=auth.uid()) with check(owner_id=auth.uid());
-create policy resources_moderator on public.resources for select to authenticated using(private.has_role('moderator') or has_role('admin'));
+create policy resources_moderator on public.resources for select to authenticated using(private.has_role('moderator') or private.has_role('admin'));
 create policy resources_approved_public on public.resources for select to anon,authenticated using(status='approved');
 create policy resource_files_owner on public.resource_files for all to authenticated using(owner_id=auth.uid()) with check(owner_id=auth.uid());
 
@@ -415,42 +415,42 @@ create policy helpdesk_moderator on public.helpdesk_entries for all to authentic
 
 create policy issues_owner on public.issues for all to authenticated using(owner_id=auth.uid()) with check(owner_id=auth.uid());
 create policy issues_moderator on public.issues for all to authenticated using(private.has_role('moderator') or private.has_role('admin')) with check(private.has_role('moderator') or private.has_role('admin'));
-create policy interventions_owner on public.interventions for select to authenticated using(owner_id=auth.uid() or coordinator_id=auth.uid() or has_role('admin') or has_role('moderator'));
+create policy interventions_owner on public.interventions for select to authenticated using(owner_id=auth.uid() or coordinator_id=auth.uid() or private.has_role('admin') or private.has_role('moderator'));
 
 create policy grievances_owner on public.grievances for select to authenticated using(owner_id=auth.uid());
 create policy grievances_insert on public.grievances for insert to authenticated with check(owner_id=auth.uid());
-create policy grievance_updates_owner on public.grievance_updates for select to authenticated using(exists(select 1 from public.grievances g where g.id=grievance_id and (g.owner_id=auth.uid() or has_role('admin') or has_role('moderator'))));
-create policy grievances_staff on public.grievances for all to authenticated using(has_role('admin') or has_role('moderator')) with check(has_role('admin') or has_role('moderator'));
+create policy grievance_updates_owner on public.grievance_updates for select to authenticated using(exists(select 1 from public.grievances g where g.id=grievance_id and (g.owner_id=auth.uid() or private.has_role('admin') or private.has_role('moderator'))));
+create policy grievances_staff on public.grievances for all to authenticated using(private.has_role('admin') or private.has_role('moderator')) with check(private.has_role('admin') or private.has_role('moderator'));
 
-create policy tickets_owner on public.tickets for all to authenticated using(owner_id=auth.uid() or has_role('admin') or has_role('moderator')) with check(owner_id=auth.uid() or has_role('admin') or has_role('moderator'));
+create policy tickets_owner on public.tickets for all to authenticated using(owner_id=auth.uid() or private.has_role('admin') or private.has_role('moderator')) with check(owner_id=auth.uid() or private.has_role('admin') or private.has_role('moderator'));
 
 create policy blood_requests_owner on public.blood_requests for all to authenticated using(owner_id=auth.uid()) with check(owner_id=auth.uid());
-create policy blood_requests_coordinator on public.blood_requests for select to authenticated using(has_role('aashraya_coordinator') or has_role('admin'));
+create policy blood_requests_coordinator on public.blood_requests for select to authenticated using(private.has_role('aashraya_coordinator') or private.has_role('admin'));
 create policy donors_owner on public.donors for all to authenticated using(owner_id=auth.uid()) with check(owner_id=auth.uid());
 create policy donor_contact_owner on public.donor_contact_details for all to authenticated using(owner_id=auth.uid()) with check(owner_id=auth.uid());
-create policy donor_contact_coordinator on public.donor_contact_details for select to authenticated using(has_role('aashraya_coordinator') or has_role('admin'));
-create policy matches_coordinator on public.donor_matches for all to authenticated using(has_role('aashraya_coordinator') or has_role('admin')) with check(has_role('aashraya_coordinator') or has_role('admin'));
+create policy donor_contact_coordinator on public.donor_contact_details for select to authenticated using(private.has_role('aashraya_coordinator') or private.has_role('admin'));
+create policy matches_coordinator on public.donor_matches for all to authenticated using(private.has_role('aashraya_coordinator') or private.has_role('admin')) with check(private.has_role('aashraya_coordinator') or private.has_role('admin'));
 create policy camps_public on public.donation_camps for select to anon,authenticated using(status='approved');
-create policy camps_coordinator on public.donation_camps for all to authenticated using(has_role('aashraya_coordinator') or has_role('admin')) with check(has_role('aashraya_coordinator') or has_role('admin'));
+create policy camps_coordinator on public.donation_camps for all to authenticated using(private.has_role('aashraya_coordinator') or private.has_role('admin')) with check(private.has_role('aashraya_coordinator') or private.has_role('admin'));
 
 create policy scribe_request_owner on public.scribe_requests for all to authenticated using(owner_id=auth.uid()) with check(owner_id=auth.uid());
-create policy scribe_request_coordinator on public.scribe_requests for select to authenticated using(has_role('sahayi_coordinator') or has_role('admin'));
+create policy scribe_request_coordinator on public.scribe_requests for select to authenticated using(private.has_role('sahayi_coordinator') or private.has_role('admin'));
 create policy scribe_volunteer_owner on public.scribe_volunteers for all to authenticated using(owner_id=auth.uid()) with check(owner_id=auth.uid());
-create policy scribe_volunteer_coordinator on public.scribe_volunteers for select to authenticated using(has_role('sahayi_coordinator') or has_role('admin'));
+create policy scribe_volunteer_coordinator on public.scribe_volunteers for select to authenticated using(private.has_role('sahayi_coordinator') or private.has_role('admin'));
 create policy scribe_assignment_owner on public.scribe_assignments for select to authenticated using(exists(select 1 from public.scribe_volunteers v where v.id=volunteer_id and v.owner_id=auth.uid()) or exists(select 1 from public.scribe_requests r where r.id=request_id and r.owner_id=auth.uid()));
-create policy scribe_assignment_coordinator on public.scribe_assignments for all to authenticated using(has_role('sahayi_coordinator') or has_role('admin')) with check(has_role('sahayi_coordinator') or has_role('admin'));
+create policy scribe_assignment_coordinator on public.scribe_assignments for all to authenticated using(private.has_role('sahayi_coordinator') or private.has_role('admin')) with check(private.has_role('sahayi_coordinator') or private.has_role('admin'));
 
 create policy notifications_self on public.notifications for all to authenticated using(owner_id=auth.uid()) with check(owner_id=auth.uid());
 create policy bookmarks_self on public.bookmarks for all to authenticated using(owner_id=auth.uid()) with check(owner_id=auth.uid());
-create policy settings_admin on public.site_settings for all to authenticated using(has_role('admin')) with check(has_role('admin'));
-create policy audit_admin on public.audit_log for select to authenticated using(has_role('admin'));
+create policy settings_admin on public.site_settings for all to authenticated using(private.has_role('admin')) with check(private.has_role('admin'));
+create policy audit_admin on public.audit_log for select to authenticated using(private.has_role('admin'));
 
 create view public.public_issues with (security_barrier=true) as
 select id,category,title,description,created_at from public.issues where status='approved' and anonymous=true;
 
 create or replace function private.audit_privileged_change() returns trigger
 language plpgsql security definer set search_path=''
-as $$ begin if private.has_role('admin') or public.has_role('moderator') or public.has_role('aashraya_coordinator') or public.has_role('sahayi_coordinator') then insert into public.audit_log(actor_id,action,table_name,row_id,old_data,new_data) values(auth.uid(),tg_op,tg_table_name,coalesce(new.id,old.id),to_jsonb(old),to_jsonb(new)); end if; return coalesce(new,old); end $$;
+as $$ begin if private.has_role('admin') or private.has_role('moderator') or private.has_role('aashraya_coordinator') or private.has_role('sahayi_coordinator') then insert into public.audit_log(actor_id,action,table_name,row_id,old_data,new_data) values(auth.uid(),tg_op,tg_table_name,coalesce(new.id,old.id),to_jsonb(old),to_jsonb(new)); end if; return coalesce(new,old); end $$;
 
 do $$ declare t text; begin
  foreach t in array array['resources','opportunities','announcements','events','helpdesk_entries','issues','interventions','grievances','grievance_updates','tickets','blood_requests','donors','donor_contact_details','donor_matches','donation_camps','scribe_requests','scribe_volunteers','scribe_assignments','site_settings'] loop
