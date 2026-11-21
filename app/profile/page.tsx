@@ -5,7 +5,7 @@ import AcademicSelectors from "../components/AcademicSelectors";
 import { api } from "@/lib/convex-api";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
-import { CUSAT_PROGRAMMES } from "@/lib/cusat-catalog";
+import { CUSAT_DEPARTMENTS, CUSAT_PROGRAMMES } from "@/lib/cusat-catalog";
 
 export default function Profile() {
   const profile = useQuery(api.platform.myAcademicProfile);
@@ -42,7 +42,7 @@ export default function Profile() {
       fullName: profile.fullName,
       studentId: profile.studentId ?? "",
       rollNumber: profile.rollNumber ?? "",
-      departmentId: matchedProgramme?.departmentId ?? profile.departmentId ?? "",
+      departmentId: matchedProgramme?.departmentId ?? canonicalDepartmentId ?? profile.departmentId ?? "",
       programmeId: matchedProgramme?.id ?? "",
       programme: matchedProgramme?.name ?? profile.programme ?? "",
       semester: profile.semester?.toString() ?? "",
