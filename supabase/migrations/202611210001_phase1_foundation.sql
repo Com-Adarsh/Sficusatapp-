@@ -390,26 +390,31 @@ create policy programmes_public_read on public.programmes for select to anon,aut
 -- Owner-scoped policies.
 create policy profiles_self on public.profiles for all to authenticated using(id=auth.uid()) with check(id=auth.uid());
 create policy roles_self_read on public.user_roles for select to authenticated using(user_id=auth.uid());
+create policy roles_admin on public.user_roles for all to authenticated using(private.has_role('admin')) with check(private.has_role('admin'));
 create policy resources_owner on public.resources for all to authenticated using(owner_id=auth.uid()) with check(owner_id=auth.uid());
 create policy resources_moderator on public.resources for select to authenticated using(private.has_role('moderator') or has_role('admin'));
 create policy resources_approved_public on public.resources for select to anon,authenticated using(status='approved');
 create policy resource_files_owner on public.resource_files for all to authenticated using(owner_id=auth.uid()) with check(owner_id=auth.uid());
 
 create policy opportunities_owner on public.opportunities for all to authenticated using(owner_id=auth.uid()) with check(owner_id=auth.uid());
-create policy opportunities_moderator on public.opportunities for select to authenticated using(has_role('moderator') or has_role('admin'));
+create policy opportunities_moderator on public.opportunities for all to authenticated using(private.has_role('moderator') or private.has_role('admin')) with check(private.has_role('moderator') or private.has_role('admin'));
 create policy opportunities_public on public.opportunities for select to anon,authenticated using(status='approved');
 
 create policy announcements_public on public.announcements for select to anon,authenticated using(status='approved');
 create policy announcements_owner on public.announcements for all to authenticated using(owner_id=auth.uid()) with check(owner_id=auth.uid());
+create policy announcements_moderator on public.announcements for all to authenticated using(private.has_role('moderator') or private.has_role('admin')) with check(private.has_role('moderator') or private.has_role('admin'));
 
 create policy events_public on public.events for select to anon,authenticated using(status='approved');
 create policy events_owner on public.events for all to authenticated using(owner_id=auth.uid()) with check(owner_id=auth.uid());
+create policy events_moderator on public.events for all to authenticated using(private.has_role('moderator') or private.has_role('admin')) with check(private.has_role('moderator') or private.has_role('admin'));
 create policy registrations_self on public.event_registrations for all to authenticated using(owner_id=auth.uid()) with check(owner_id=auth.uid());
 
 create policy helpdesk_public on public.helpdesk_entries for select to anon,authenticated using(status='approved');
 create policy helpdesk_owner on public.helpdesk_entries for all to authenticated using(owner_id=auth.uid()) with check(owner_id=auth.uid());
+create policy helpdesk_moderator on public.helpdesk_entries for all to authenticated using(private.has_role('moderator') or private.has_role('admin')) with check(private.has_role('moderator') or private.has_role('admin'));
 
 create policy issues_owner on public.issues for all to authenticated using(owner_id=auth.uid()) with check(owner_id=auth.uid());
+create policy issues_moderator on public.issues for all to authenticated using(private.has_role('moderator') or private.has_role('admin')) with check(private.has_role('moderator') or private.has_role('admin'));
 create policy interventions_owner on public.interventions for select to authenticated using(owner_id=auth.uid() or coordinator_id=auth.uid() or has_role('admin') or has_role('moderator'));
 
 create policy grievances_owner on public.grievances for select to authenticated using(owner_id=auth.uid());
