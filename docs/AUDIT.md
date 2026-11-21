@@ -33,7 +33,18 @@ The production target is:
 - GitHub Actions
 
 ## 3. Backend assessment
-Supabase is active and currently hosts a small existing schema. Convex is also active and is currently used by Profile/Study AI. The production migration should not switch Profile or Study AI abruptly. Supabase will become authoritative for new production domains first.
+Supabase is active and is now the production system of record for the Phase 1 foundation. The live production schema contains all 28 tables defined by the Phase 1 foundation migration, plus the two pre-Phase-1 leaderboard tables: `leaderboard` and `leaderboard_sessions`. Convex is also active and is currently used by Profile/Study AI. The production migration should not switch Profile or Study AI abruptly. Supabase will become authoritative for new production domains first.
+
+### Production schema reconciliation
+The earlier audit item saying Phase-1 tables were missing from live production was incorrect. Read-only reconciliation against `jwhyesglviptvklrclll` confirms that **none of the 28 Phase-1-defined tables are missing**.
+
+The two tables that pre-dated Phase 1 are exactly:
+- `leaderboard`
+- `leaderboard_sessions`
+
+They are retained and protected by RLS. `leaderboard_public_read` intentionally exposes leaderboard rows publicly; this is flagged separately in `docs/RLS_MATRIX.md`.
+
+`scholarships` is different: it is an application/domain requirement represented by the `/scholarships` product area, but there is **no dedicated `public.scholarships` table** in production. The current domain model uses `opportunities.type = 'scholarship'`. A dedicated scholarships table remains a future schema-plan item if the product needs scholarship-specific fields/workflows.
 
 ## 4. Demo/hardcoded sources
 
@@ -161,7 +172,7 @@ Email/password Supabase Auth exists. Google OAuth and campus-email verified badg
 | Sahayi volunteer | Local-only | Supabase |
 | Sahayi assignments | Demo/local | Supabase |
 | Opportunities | Demo | Supabase |
-| Scholarships | Demo/local | Supabase |
+| Scholarships | Demo/local | Supabase; currently represented through `opportunities.type = 'scholarship'`; dedicated `scholarships` table remains a future schema-plan item |
 | Event registration | Incomplete | Supabase |
 | Gallery | Demo | Private Storage + moderation |
 | Magazine | Demo | Supabase |
@@ -224,7 +235,11 @@ Remove user-facing occurrences of demo mode, demo records, backend paused/backen
 ## 25. Production architecture
 Next.js → Supabase Auth → server-side mutations/queries → Postgres/RLS → private Storage; pgvector for later AI retrieval; PostgreSQL FTS/trgm for search.
 
-## 26. Migration strategy
+## 26. Schema and migration strategy
+The production schema reconciliation is now documented in `docs/prod-schema-snapshot.sql` and the effective RLS model in `docs/RLS_MATRIX.md`.
+
+Schema-plan gap to carry forward: `scholarships` is a domain requirement but has no dedicated table yet. Keep it as a planned schema item rather than treating it as a missing Phase-1 table.
+
 Migrate in small commits:
 1. security hotfixes
 2. schema/RLS
