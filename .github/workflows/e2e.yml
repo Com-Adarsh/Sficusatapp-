@@ -1,0 +1,38 @@
+name: e2e
+
+on:
+  pull_request:
+  push:
+    branches: [phase-1-supabase-foundation]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      SUPABASE_PROJECT_REF: jwhyesglviptvklrclll
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_DEV_URL }}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_DEV_PUBLISHABLE_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_DEV_SERVICE_ROLE_KEY }}
+      SUPABASE_AUTH_ISSUER: https://jwhyesglviptvklrclll.supabase.co/auth/v1
+      E2E_PASSWORD_STUDENT: ${{ secrets.E2E_PASSWORD_STUDENT }}
+      E2E_PASSWORD_MODERATOR: ${{ secrets.E2E_PASSWORD_MODERATOR }}
+      E2E_PASSWORD_AASHRAYA: ${{ secrets.E2E_PASSWORD_AASHRAYA }}
+      E2E_PASSWORD_SAHAYI: ${{ secrets.E2E_PASSWORD_SAHAYI }}
+      E2E_PASSWORD_ADMIN: ${{ secrets.E2E_PASSWORD_ADMIN }}
+      E2E_STUDENT_EMAIL: e2e-student@sficusat.test
+      E2E_AASHRAYA_EMAIL: e2e-aashraya@sficusat.test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install
+      - run: npx playwright install --with-deps chromium
+      - name: Generate local Convex types for the test build
+        run: CONVEX_AGENT_MODE=anonymous npx convex dev --once
+      - name: Seed test users
+        run: npm run e2e:seed
+      - name: Run Playwright
+        run: npm run e2e

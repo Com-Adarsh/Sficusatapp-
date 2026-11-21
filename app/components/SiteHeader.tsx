@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   BookOpen,
   CircleUserRound,
@@ -32,6 +32,19 @@ const icons: Record<string, React.ReactNode> = {
 
 export default function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    void supabase.auth.getUser().then(({ data }) => setSignedIn(Boolean(data.user)));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => setSignedIn(Boolean(session?.user)));
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  async function signOut() {
+    await createClient().auth.signOut();
+    window.location.assign("/");
+  }
 
   return (
     <header className="reference-header">
@@ -62,7 +75,7 @@ export default function SiteHeader() {
             <a className="icon-btn reference-icon" href="/search" aria-label="Search the platform">
               <Search size={17} aria-hidden="true" />
             </a>
-            <a className="btn primary desktop-sign reference-sign" href="/sign-in">Sign in</a>
+            {signedIn ? <button className="btn primary desktop-sign reference-sign" type="button" onClick={signOut}>Sign out</button> : <a className="btn primary desktop-sign reference-sign" href="/sign-in">Sign in</a>}
             <button
               className="menu-btn"
               onClick={() => setOpen(!open)}
