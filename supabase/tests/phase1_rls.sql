@@ -1,6 +1,6 @@
 begin;
 
-select plan(7);
+select plan(8);
 
 -- Test fixtures. These UUIDs are synthetic and never represent real users.
 insert into auth.users (id,aud,role,email,created_at,updated_at,email_confirmed_at)
@@ -48,8 +48,11 @@ select is((select count(*) from public.grievances where owner_id='00000000-0000-
 select is((select count(*) from public.blood_requests where owner_id='00000000-0000-0000-0000-000000000001'),0::bigint,'student cannot read another student blood request');
 select is((select count(*) from public.scribe_requests where owner_id='00000000-0000-0000-0000-000000000001'),0::bigint,'student cannot read another student scribe request');
 select is((select count(*) from public.resources where status='pending'),0::bigint,'authenticated public cannot read pending resources');
-select is((select count(*) from public.donor_contact_details),0::bigint,'coordinator cannot read donor contact details without donor consent');
+select is((select count(*) from public.donor_contact_details),0::bigint,'Aashraya coordinator cannot read donor contact details without donor consent');
 select is((select count(*) from public.scribe_requests),0::bigint,'Aashraya coordinator cannot read Sahayi requests');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-000000000003","role":"authenticated"}',true);
+select is((select count(*) from public.donor_contact_details),0::bigint,'non-coordinator cannot read donor contact details');
 
 select * from finish();
 rollback;
