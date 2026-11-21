@@ -14,10 +14,14 @@ export const consumeDailyQuota = mutation({
   }),
   handler: async (ctx) => {
     const user = await ensureUser(ctx);
+    if (!user) throw new Error("User profile could not be provisioned");
+
     const dayKey = new Date().toISOString().slice(0, 10);
     const existing = await ctx.db
       .query("aiUsageDaily")
-      .withIndex("by_user_day", (q) => q.eq("userId", user.legacyId).eq("dayKey", dayKey))
+      .withIndex("by_user_day", (q) =>
+        q.eq("userId", user.legacyId).eq("dayKey", dayKey),
+      )
       .unique();
 
     const current = existing?.messageCount ?? 0;
@@ -27,8 +31,12 @@ export const consumeDailyQuota = mutation({
 
     const nextCount = current + 1;
     const now = Date.now();
+
     if (existing) {
-      await ctx.db.patch(existing._id, { messageCount: nextCount, updatedAt: now });
+      await ctx.db.patch(existing._id, {
+        messageCount: nextCount,
+        updatedAt: now,
+      });
     } else {
       await ctx.db.insert("aiUsageDaily", {
         userId: user.legacyId,
