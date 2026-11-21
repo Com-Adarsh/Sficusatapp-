@@ -2,14 +2,19 @@
 create extension if not exists pg_trgm;
 create extension if not exists unaccent;
 create extension if not exists vector;
+create extension if not exists pgcrypto;
+
+create schema if not exists private;
 
 create type public.moderation_status as enum ('pending','approved','rejected');
 create type public.user_role as enum ('student','moderator','admin','aashraya_coordinator','sahayi_coordinator');
 
 create or replace function public.set_updated_at() returns trigger language plpgsql as $$begin new.updated_at=now(); return new; end$$;
-create or replace function public.has_role(required_role public.user_role) returns boolean
-language sql stable security definer set search_path=public
-as $$ select exists(select 1 from public.user_roles where user_id=auth.uid() and role=required_role); $$;
+create or replace function private.has_role(required_role public.user_role) returns boolean
+language sql stable security definer set search_path=''
+as $ select exists(select 1 from public.user_roles where user_id=(select auth.uid()) and role=required_role); $;
+revoke all on function private.has_role(public.user_role) from public, anon, authenticated;
+grant execute on function private.has_role(public.user_role) to authenticated;
 
 create table public.profiles (
  id uuid primary key references auth.users(id) on delete cascade,
@@ -386,7 +391,7 @@ create policy programmes_public_read on public.programmes for select to anon,aut
 create policy profiles_self on public.profiles for all to authenticated using(id=auth.uid()) with check(id=auth.uid());
 create policy roles_self_read on public.user_roles for select to authenticated using(user_id=auth.uid());
 create policy resources_owner on public.resources for all to authenticated using(owner_id=auth.uid()) with check(owner_id=auth.uid());
-create policy resources_moderator on public.resources for select to authenticated using(has_role('moderator') or has_role('admin'));
+create policy resources_moderator on public.resources for select to authenticated using(private.has_role('moderator') or has_role('admin'));
 create policy resources_approved_public on public.resources for select to anon,authenticated using(status='approved');
 create policy resource_files_owner on public.resource_files for all to authenticated using(owner_id=auth.uid()) with check(owner_id=auth.uid());
 
@@ -435,25 +440,47 @@ create policy bookmarks_self on public.bookmarks for all to authenticated using(
 create policy settings_admin on public.site_settings for all to authenticated using(has_role('admin')) with check(has_role('admin'));
 create policy audit_admin on public.audit_log for select to authenticated using(has_role('admin'));
 
-create or replace function public.issue_tracking_token(p_token text)
-returns table(id uuid,ticket_code text,title text,description text,category text,status text,anonymous boolean,created_at timestamptz,updated_at timestamptz)
-language sql stable security definer set search_path=public
-as $$ select g.id,'CUSAT-'||substr(encode(digest(g.tracking_token_hash,'sha256'),'hex'),1,12),g.title,g.description,g.category,g.status,g.anonymous,g.created_at,g.updated_at from public.grievances g where g.tracking_token_hash=encode(digest(p_token,'sha256'),'hex') limit 1; $$;
-
-create view public.public_issues with (security_invoker=true,security_barrier=true) as
+create view public.public_issues with (security_barrier=true) as
 select id,category,title,description,created_at from public.issues where status='approved' and anonymous=true;
 
-create or replace function public.audit_privileged_change() returns trigger
-language plpgsql security definer set search_path=public
-as $$ begin if public.has_role('admin') or public.has_role('moderator') or public.has_role('aashraya_coordinator') or public.has_role('sahayi_coordinator') then insert into public.audit_log(actor_id,action,table_name,row_id,old_data,new_data) values(auth.uid(),tg_op,tg_table_name,coalesce(new.id,old.id),to_jsonb(old),to_jsonb(new)); end if; return coalesce(new,old); end $$;
+create or replace function private.audit_privileged_change() returns trigger
+language plpgsql security definer set search_path=''
+as $$ begin if private.has_role('admin') or public.has_role('moderator') or public.has_role('aashraya_coordinator') or public.has_role('sahayi_coordinator') then insert into public.audit_log(actor_id,action,table_name,row_id,old_data,new_data) values(auth.uid(),tg_op,tg_table_name,coalesce(new.id,old.id),to_jsonb(old),to_jsonb(new)); end if; return coalesce(new,old); end $$;
 
 do $$ declare t text; begin
  foreach t in array array['resources','opportunities','announcements','events','helpdesk_entries','issues','interventions','grievances','grievance_updates','tickets','blood_requests','donors','donor_contact_details','donor_matches','donation_camps','scribe_requests','scribe_volunteers','scribe_assignments','site_settings'] loop
   execute format('create trigger %I_updated_at before update on public.%I for each row execute function public.set_updated_at()',t||'_updated_at',t);
-  execute format('create trigger %I_audit after insert or update or delete on public.%I for each row execute function public.audit_privileged_change()',t||'_audit',t);
+  execute format('create trigger %I_audit after insert or update or delete on public.%I for each row execute function private.audit_privileged_change()',t||'_audit',t);
  end loop;
 end $$;
 
 grant select on public.departments,public.programmes,public.public_issues to anon,authenticated;
 grant select on public.resources,public.opportunities,public.announcements,public.events,public.helpdesk_entries,public.donation_camps to anon,authenticated;
 revoke all on public.grievances,public.grievance_updates,public.blood_requests,public.donors,public.donor_contact_details,public.scribe_requests,public.scribe_volunteers,public.scribe_assignments from anon;
+
+
+-- Storage: private resource files, with access controlled by storage.objects RLS.
+insert into storage.buckets (id,name,public,file_size_limit,allowed_mime_types)
+values ('resource-files','resource-files',false,10485760,array['application/pdf','image/jpeg','image/png','image/webp'])
+on conflict (id) do update set public=false,file_size_limit=10485760,allowed_mime_types=excluded.allowed_mime_types;
+
+create policy resource_files_upload on storage.objects
+for insert to authenticated
+with check (bucket_id='resource-files' and owner_id=(select auth.uid()::text));
+
+create policy resource_files_owner_read on storage.objects
+for select to authenticated
+using (bucket_id='resource-files' and owner_id=(select auth.uid()::text));
+
+create policy resource_files_owner_delete on storage.objects
+for delete to authenticated
+using (bucket_id='resource-files' and owner_id=(select auth.uid()::text));
+
+create policy resource_files_moderator_read on storage.objects
+for select to authenticated
+using (
+ bucket_id='resource-files'
+ and private.has_role('moderator'::public.user_role) or private.has_role('admin'::public.user_role)
+);
+
+grant usage on schema private to authenticated;
