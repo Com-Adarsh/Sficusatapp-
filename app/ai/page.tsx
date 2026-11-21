@@ -6,6 +6,7 @@ import { createClient as createSupabaseBrowserClient } from "@/lib/supabase/clie
 import { useQuery } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -19,7 +20,7 @@ const starterPrompts = [
   "Quiz me with 5 questions on this topic.",
 ];
 
-export default function AIPage() {
+function AIPageContent() {
   const searchParams = useSearchParams();
   const profile = useQuery(api.platform.myAcademicProfile);
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
@@ -236,5 +237,14 @@ export default function AIPage() {
         </div>
       </section>
     </PageShell>
+  );
+}
+
+
+export default function AIPage() {
+  return (
+    <Suspense fallback={<PageShell><section className="section"><div className="shell"><div className="card">Loading Study Assistant…</div></div></section></PageShell>}>
+      <AIPageContent />
+    </Suspense>
   );
 }
