@@ -22,7 +22,7 @@ const starterPrompts = [
 
 function AIPageContent() {
   const searchParams = useSearchParams();
-  const profile = useQuery(api.platform.myAcademicProfile);
+  const profile = useQuery(api.platform.myAcademicProfile, signedIn === true ? {} : "skip");
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [subject, setSubject] = useState(searchParams.get("subject") ?? "");
   const [input, setInput] = useState("");
@@ -126,7 +126,12 @@ function AIPageContent() {
 
       <section className="section">
         <div className="shell">
-          {signedIn === false ? (
+          {signedIn === null ? (
+            <div className="authcard">
+              <h2>Connecting your student session…</h2>
+              <p>Securely checking your account before opening the Study Assistant.</p>
+            </div>
+          ) : signedIn === false ? (
             <div className="authcard">
               <h2>Sign in to use the Study Assistant</h2>
               <p>Your questions are tied to your student account and protected by a daily usage limit.</p>
