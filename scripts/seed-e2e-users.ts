@@ -1,11 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
-
-const DEV_REF = "jwhyesglviptvklrclll";
-const PRODUCTION_REF = "bdeuecrwqrnlwhxwbpmi";
+import { assertDevSupabaseTarget } from "./assert-dev-supabase";
 
 if (process.env.NODE_ENV === "production") throw new Error("REFUSED: e2e seed cannot run with NODE_ENV=production.");
-if (process.env.SUPABASE_PROJECT_REF !== DEV_REF) throw new Error(`REFUSED: e2e seed requires Supabase dev ref ${DEV_REF}.`);
-if (process.env.SUPABASE_PROJECT_REF === PRODUCTION_REF) throw new Error("REFUSED: production Supabase ref.");
+assertDevSupabaseTarget(process.env.SUPABASE_PROJECT_REF);
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -37,4 +34,4 @@ for (const [name, email, fullName, role] of users) {
     if (error) throw error;
   }
 }
-console.log("E2E users seeded in DEV only.");
+console.log("E2E users seeded in explicitly allowlisted DEV only.");
