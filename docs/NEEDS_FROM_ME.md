@@ -1,41 +1,10 @@
-# NEEDS FROM ME
+# Phase 2 — NEEDS FROM ME
 
-Values that must not be invented and must be supplied or confirmed before production launch.
-
-## Required contacts
-- [ ] Aashraya coordinator name
-- [ ] Aashraya public contact environment value (phone/WhatsApp or neutral no-contact wording)
-- [ ] Aashraya coordinator phone/WhatsApp
-- [ ] Sahayi coordinator name
-- [ ] Sahayi public contact environment value (phone/WhatsApp or neutral no-contact wording)
-- [ ] Sahayi coordinator phone/WhatsApp
-- [ ] Official escalation contact(s)
-- [ ] Official anti-ragging contact(s)
-- [ ] Any additional official wellbeing/escalation contacts
-
-## Academic configuration
-- [ ] Confirm the single semester scheme to use consistently across Profile, Resource Upload and Resource Browse. Current UI offers 1–10 while browse previously offered 1–8.
-- [ ] Confirm canonical academic-year/batch representation if required.
-
-## Security / infrastructure
-- [ ] Cloudflare Turnstile site key and secret
-- [ ] Sentry DSN
-- [ ] Google OAuth client ID/secret
-- [ ] Confirm Google OAuth redirect configuration
-- [ ] Confirm AI provider
-- [ ] Confirm AI model
-- [ ] Confirm any AI provider billing/budget constraints
-
-## Privacy / legal
-- [ ] Confirm data-retention policy
-- [ ] Confirm who may access grievance records
-- [ ] Confirm deletion workflow/contact
-- [ ] Review DPDP Act 2023 obligations and identify the responsible data/privacy contact
-- [ ] Review Privacy Policy, Terms, About and Contact text before launch
-
-## Blood-support configuration
-- [ ] Confirm Aashraya emergency/contact wording
-- [ ] Confirm blood-donation eligibility thresholds against current Indian blood-bank guidance before implementation
-- [ ] Confirm cooldown policy if different from the configured guidance
-
-No secret values should be committed to Git. Secrets belong in the appropriate local/Vercel/Supabase secret stores.
+- Google OAuth client ID + client secret for DEV Supabase Auth, plus the configured callback/redirect URL.
+- Turnstile site key + secret for DEV and later production.
+- Sentry DSN (and desired environment names).
+- Confirmed Aashraya coordinator contact.
+- Confirmed Sahayi coordinator contact.
+- A dev-only Supabase service-role key for Playwright test-user seeding. Store it as a secret; never commit it.
+- Production Supabase ref/value mapping needs confirmation: this phase request names `bdeuecrwqrnlwhxwbpmi` as production, while the existing Vercel production environment currently contains `jwhyesglviptvklrclll`. I did not overwrite production values.
+- Convex deployment credentials if the cloud deployment itself needs its JWT issuer environment updated. The code now reads `SUPABASE_AUTH_ISSUER` per Convex deployment instead of hardcoding a Supabase project.
