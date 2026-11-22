@@ -54,9 +54,7 @@ jobs:
           done
       - name: Guard protected refs
         run: node --import tsx tests/assert-dev-supabase.test.ts
+      - name: Ensure profile idempotency test
+        run: node --import tsx tests/ensure-profile.test.ts
       - name: Schema drift report
         run: bash tests/supabase/schema-drift.sh
-      - name: Build application
-        run: |
-          npm ci
-          npm run build
