@@ -16,8 +16,6 @@ fi
 psql -v ON_ERROR_STOP=1 -d postgres -c "drop database if exists \"$DB_NAME\";"
 psql -v ON_ERROR_STOP=1 -d postgres -c "create database \"$DB_NAME\";"
 
-# The runner/CI shim supplies Supabase-managed auth/storage primitives before
-# this baseline. Local Supabase development supplies those primitives itself.
 if [[ -f tests/supabase/postgres_shim.sql ]]; then
   psql -v ON_ERROR_STOP=1 -d "$DB_NAME" -f tests/supabase/postgres_shim.sql
 fi
@@ -25,9 +23,25 @@ fi
 echo "=== APPLY BASELINE ==="
 psql -v ON_ERROR_STOP=1 -d "$DB_NAME" -f supabase/baseline/00000000000000_prod_schema_baseline.sql
 
-echo "=== APPLY UNAPPLIED MIGRATIONS ==="
+recorded_versions=(
+  20261121160535_phase1_foundation
+  20261121160657_phase1_foundation_actual
+  20261121161121_phase2_security_performance
+  20261121161135_phase2_advisor_cleanup
+  20261121161244_phase2_donor_consent_fix
+  20261122110000_phase2_auth_trigger_failsafe
+)
 for file in $(find supabase/migrations -maxdepth 1 -type f -name '*.sql' | sort); do
-  echo "=== APPLY $file ==="
+  base="$(basename "$file" .sql)"
+  skip=false
+  for recorded in "${recorded_versions[@]}"; do
+    [[ "$base" == "$recorded" ]] && skip=true
+  done
+  if [[ "$skip" == true ]]; then
+    echo "=== SKIP recorded/baselined $file ==="
+    continue
+  fi
+  echo "=== APPLY unapplied $file ==="
   psql -v ON_ERROR_STOP=1 -d "$DB_NAME" -f "$file"
 done
 
