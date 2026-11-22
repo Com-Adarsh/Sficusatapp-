@@ -90,18 +90,6 @@ begin
     raise exception 'owner_id may only be changed by staff';
   end if;
 
-  -- Approved student content is never edited in place: the edit is re-queued.
-  if tg_table_name in ('resources','opportunities','helpdesk_entries','issues')
-     and new_row ? 'status'
-     and old_row->>'status' = 'approved'
-     and new_row->>'status' <> 'pending' then
-    new := jsonb_populate_record(new, jsonb_build_object('status','pending'));
-    if new_row ? 'published_at' then
-      new := jsonb_populate_record(new, jsonb_build_object('published_at',null));
-    end if;
-    new_row := to_jsonb(new);
-  end if;
-
   foreach protected_column in array[
     'verified','reviewed_by','reviewed_at','published_at',
     'rejection','rejection_reason','rejected_at',
@@ -113,6 +101,18 @@ begin
       raise exception '% may only be changed by staff', protected_column;
     end if;
   end loop;
+
+  -- Approved student content is never edited in place: the edit is re-queued.
+  if tg_table_name in ('resources','opportunities','helpdesk_entries','issues')
+     and new_row ? 'status'
+     and old_row->>'status' = 'approved'
+     and new_row->>'status' <> 'pending' then
+    new := jsonb_populate_record(new, jsonb_build_object('status','pending'));
+    if new_row ? 'published_at' then
+      new := jsonb_populate_record(new, jsonb_build_object('published_at',null));
+    end if;
+    new_row := to_jsonb(new);
+  end if;
 
   -- Status is protected everywhere it exists, except an approved content edit
   -- which is intentionally re-queued to pending above.
