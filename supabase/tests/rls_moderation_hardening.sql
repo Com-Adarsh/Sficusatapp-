@@ -1,5 +1,5 @@
 begin;
-select plan(26);
+select plan(30);
 
 -- Student identity.
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
@@ -129,6 +129,39 @@ select ok(exists(select 1 from pg_trigger where tgname='prevent_owner_moderation
 set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
+
+-- Moderator without grievance_officer cannot read grievance data.
+insert into auth.users (id,email)
+values ('10000000-0000-0000-0000-000000000012','rls-moderator@test.local')
+on conflict (id) do nothing;
+insert into public.user_roles(user_id,role)
+values ('10000000-0000-0000-0000-000000000012','moderator')
+on conflict do nothing;
+set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000012","role":"authenticated"}',true);
+select is((select count(*) from public.grievances),0::bigint,'moderator without grievance_officer cannot read grievances');
+
+-- Public settings are opt-in; private settings remain hidden.
+set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000010","role":"authenticated"}',true);
+insert into public.site_settings(key,value,is_public) values
+  ('public_test','visible',true),
+  ('private_test','hidden',false)
+on conflict (key) do update set value=excluded.value,is_public=excluded.is_public;
+
+set local role anon;
+select is((select count(*) from public.site_settings where key='public_test'),1::bigint,'anonymous can read public setting');
+select is((select count(*) from public.site_settings where key='private_test'),0::bigint,'anonymous cannot read private setting');
+
+-- Public issue view contains approved anonymous issues only.
+set local role authenticated;
+set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000010","role":"authenticated"}',true);
+insert into public.issues(owner_id,category,title,description,status,anonymous)
+values
+ ('10000000-0000-0000-0000-000000000010','general','approved-public','ok','approved',true),
+ ('10000000-0000-0000-0000-000000000010','general','pending-public','not yet','pending',true);
+set local role anon;
+select is((select count(*) from public.public_issues where title='approved-public'),1::bigint,'public issues exposes approved anonymous row');
+select is((select count(*) from public.public_issues where title='pending-public'),0::bigint,'public issues hides pending row');
+
 -- Anonymous access is only through the author-free view.
 set local role anon;
 select is((select count(*) from public.issues),0::bigint,'anonymous cannot select issues table');
