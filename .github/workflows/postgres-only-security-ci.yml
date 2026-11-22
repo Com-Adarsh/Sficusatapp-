@@ -61,6 +61,17 @@ jobs:
             echo "== APPLY $f =="
             docker exec -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < "$f"
           done
+      - name: Schema drift against production snapshot
+        run: |
+          set -euo pipefail
+          docker exec "$DB_CONTAINER" dropdb -U supabase_admin --if-exists schema_snapshot
+          docker exec "$DB_CONTAINER" createdb -U supabase_admin schema_snapshot
+          docker exec -i "$DB_CONTAINER" psql -U supabase_admin -d schema_snapshot -v ON_ERROR_STOP=1 -f - < tests/supabase/postgres_test_shim.sql
+          docker exec -i "$DB_CONTAINER" psql -U supabase_admin -d schema_snapshot -v ON_ERROR_STOP=1 -f - < docs/prod-schema-snapshot.sql
+          docker exec "$DB_CONTAINER" pg_dump -U supabase_admin --schema-only --no-owner --no-privileges --schema=public postgres > /tmp/actual-production-baseline.sql
+          docker exec "$DB_CONTAINER" pg_dump -U supabase_admin --schema-only --no-owner --no-privileges --schema=public schema_snapshot > /tmp/expected-production-baseline.sql
+          diff -u /tmp/expected-production-baseline.sql /tmp/actual-production-baseline.sql
+
       - name: Apply staged auth, role and RLS migrations
         run: |
           set -euo pipefail
@@ -88,18 +99,6 @@ jobs:
           done
       - name: Guard unit tests
         run: npx --yes tsx scripts/test-assert-dev-supabase.ts
-      - name: Schema drift against production snapshot
-        run: |
-          set -euo pipefail
-          docker exec "$DB_CONTAINER" pg_dump -U supabase_admin --schema-only --no-owner --no-privileges --schema=public > /tmp/actual-public-schema.sql
-          sed -E \
-            -e '/^-- Dumped from database version/d' \
-            -e '/^-- Dumped by pg_dump version/d' \
-            -e '/^SET /d' \
-            -e '/^SELECT pg_catalog.set_config/d' \
-            -e '/^\\connect /d' \
-            docs/prod-schema-snapshot.sql > /tmp/expected-public-schema.sql
-          diff -u /tmp/expected-public-schema.sql /tmp/actual-public-schema.sql
       - name: Print failure diagnostics
         if: failure()
         run: |
