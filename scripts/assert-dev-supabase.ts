@@ -15,7 +15,7 @@ export function assertDevSupabaseTarget(
   if (PROTECTED_REFS.has(allowedDevRef)) {
     throw new Error(`REFUSED: ALLOWED_DEV_REF ${allowedDevRef} is explicitly blocked.`);
   }
-  if (BLOCKED_REFS.has(projectRef ?? "")) {
+  if (PROTECTED_REFS.has(projectRef ?? "")) {
     throw new Error(`REFUSED: Supabase project ${projectRef} is explicitly blocked.`);
   }
   if (projectRef !== allowedDevRef) {
