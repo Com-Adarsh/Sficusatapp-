@@ -33,6 +33,26 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y postgresql-client
+      - name: Overlay current Phase 2 migration/test baseline
+        run: |
+          set -euo pipefail
+          git fetch origin phase2-safety-reconciliation
+          for f in \
+            supabase/migrations/202611210001_phase1_foundation.sql \
+            supabase/migrations/20261121161700_phase1_foundation_actual.sql \
+            supabase/migrations/20261121162000_phase2_security_performance.sql \
+            supabase/migrations/20261121162500_phase2_advisor_cleanup.sql \
+            supabase/migrations/20261121163000_phase2_donor_consent_fix.sql \
+            supabase/migrations/20261121170000_phase2_auth_foundation.sql \
+            supabase/migrations/20261121171000_phase2_role_rpc.sql \
+            supabase/migrations/20261122120000_phase2_rls_hardening.sql \
+            supabase/tests/rls_authenticated_roles.sql \
+            supabase/tests/rls_moderation_hardening.sql \
+            docs/prod-schema-snapshot.sql
+          do
+            git checkout origin/phase2-safety-reconciliation -- "$f"
+          done
+
       - name: Wait for Postgres
         run: |
           for i in {1..60}; do
@@ -107,4 +127,4 @@ jobs:
           echo "=== Tables ==="
           docker exec -e PGPASSWORD=postgres "$DB_CONTAINER" psql -U supabase_admin -d postgres -Atc "select schemaname||'.'||tablename from pg_tables where schemaname='public' order by 1;"
           echo "=== RLS policies ==="
-          docker exec -e PGPASSWORD=postgres "$DB_CONTAINER" psql -U supabase_admin -d postgres -Atc "select schemaname||'.'||tablename||' '||policyname||' '||cmd from pg_policies where schemaname='public' order by 1,2,3;" || true
+          docker exec -e PGPASSWORD=postgres "$DB_CONTAINER" psql -U supabase_admin -d postgres -Atc "select schemaname||'.'||tablename||' '||policyname||' '||cmd from pg_policies where schemaname='public' order by 1;" || true
