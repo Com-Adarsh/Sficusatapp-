@@ -22,7 +22,8 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          supabase start 2>&1 | tee /tmp/supabase-start.log || {
+          # The auth-trigger test needs Postgres/Auth/PostgREST/Kong only. Exclude the rest to reduce image pulls and registry pressure.
+          supabase start -x realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor 2>&1 | tee /tmp/supabase-start.log || {
             echo '--- supabase status ---'
             supabase status || true
             echo '--- supabase debug retry ---'
