@@ -1,4 +1,5 @@
 name: auth-trigger-failsafe-ci
+# Manual and PR triggers intentionally have no path filters.
 
 on:
   workflow_dispatch:
