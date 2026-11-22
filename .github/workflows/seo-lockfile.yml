@@ -25,12 +25,13 @@ jobs:
       - name: Commit lockfile separately
         run: |
           set -euo pipefail
-          if git diff --quiet -- package-lock.json; then
-            echo "package-lock.json already current"
-            exit 0
-          fi
+          test -s package-lock.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package-lock.json
+          if git diff --cached --quiet; then
+            echo "package-lock.json unchanged"
+            exit 0
+          fi
           git commit -m "chore: add npm lockfile"
           git push origin HEAD:seo-metadata
