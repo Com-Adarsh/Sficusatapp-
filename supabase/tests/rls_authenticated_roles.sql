@@ -1,5 +1,5 @@
 begin;
-select plan(12);
+select plan(11);
 
 insert into auth.users (id,aud,role,email,created_at,updated_at,email_confirmed_at)
 values
