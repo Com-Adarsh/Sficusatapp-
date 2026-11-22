@@ -56,5 +56,7 @@ jobs:
         run: node --import tsx tests/assert-dev-supabase.test.ts
       - name: Ensure profile idempotency test
         run: node --import tsx tests/ensure-profile.test.ts
+      - name: Grievance token cancellation test
+        run: node --import tsx tests/grievance-cancel.test.ts
       - name: Schema drift report
         run: bash tests/supabase/schema-drift.sh
