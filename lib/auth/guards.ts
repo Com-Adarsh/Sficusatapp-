@@ -2,6 +2,8 @@ import "server-only";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
+import { createServiceClient } from "@/lib/supabase/service";
+import { ensureProfileForUser } from "@/lib/auth/ensure-profile";
 
 type AppRole = Database["public"]["Enums"]["user_role"];
 
@@ -14,6 +16,8 @@ export async function getCurrentUser() {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) return null;
+  // Fail-safe signup can intentionally leave side-effect rows absent; repair them after sign-in.
+  await ensureProfileForUser(createServiceClient(), data.user);
   return data.user;
 }
 
