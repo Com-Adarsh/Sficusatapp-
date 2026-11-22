@@ -32,6 +32,17 @@ Production's read-only `supabase_migrations.schema_migrations` history reports t
 
 The Git files are being renamed to these production versions **without changing their SQL content**.
 
+Unapplied version mapping:
+
+| Old Git filename | New versioned filename |
+| --- | --- |
+| `20261121170000_phase2_auth_foundation.sql` | `20261122111000_phase2_auth_foundation.sql` |
+| `20261121171000_phase2_role_rpc.sql` | `20261122112000_phase2_role_rpc.sql` |
+| `20261122115000_phase2_grievance_officer_role.sql` | `20261122113000_phase2_grievance_officer_role.sql` |
+| `20261122120000_phase2_rls_hardening.sql` | `20261122114000_phase2_rls_hardening.sql` |
+
+These new versions are all later than the production hotfix `20261122110000` and later than every recorded production migration.
+
 The raw-SQL fail-safe trigger hotfix is recorded in the repository as `20261122110000_phase2_auth_trigger_failsafe.sql`; it was applied to production outside the migration-history table and therefore must not be repaired/re-written in production.
 
 Unapplied migrations are assigned versions later than `20261122110000` and later than every recorded production version. Their old-to-new mapping is recorded in the commit history and below.
