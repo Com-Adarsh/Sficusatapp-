@@ -29,7 +29,7 @@ jobs:
       - name: Install pgvector or create CI stub
         run: |
           set -euo pipefail
-          PG_MAJOR="$(pg_config --major-version)"
+          PG_MAJOR="$(pg_config --version | sed -E 's/.* ([0-9]+)\..*/\1/')"
           if apt-cache show "postgresql-${PG_MAJOR}-pgvector" >/dev/null 2>&1; then
             sudo apt-get install -y "postgresql-${PG_MAJOR}-pgvector"
           else
