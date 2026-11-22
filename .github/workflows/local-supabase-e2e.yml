@@ -1,10 +1,8 @@
 name: local-supabase-e2e
 
 on:
+  workflow_dispatch:
   push:
-    branches:
-      - main
-      - phase2-safety-reconciliation
   pull_request:
 
 jobs:
