@@ -15,10 +15,10 @@ import {
 import type { ReactNode } from "react";
 
 const services: Array<[string, string, string, ReactNode]> = [
-  ["Learn", "Notes, question papers and academic resources.", "/resources", <BookOpen size={21} />],
-  ["Student Support", "Academic, hostel and student helpdesk services.", "/support", <LifeBuoy size={21} />],
-  ["SCHOLARX", "Scholarships, internships, jobs and fellowships.", "/opportunities", <BriefcaseBusiness size={21} />],
-  ["Study AI", "Ask questions with your programme and semester context.", "/ai", <Sparkles size={21} />],
+  ["Learn", "Notes, question papers and academic resources.", "/resources", <BookOpen key="learn" size={21} />],
+  ["Student Support", "Academic, hostel and student helpdesk services.", "/support", <LifeBuoy key="support" size={21} />],
+  ["SCHOLARX", "Scholarships, internships, jobs and fellowships.", "/opportunities", <BriefcaseBusiness key="scholarx" size={21} />],
+  ["Study AI", "Ask questions with your programme and semester context.", "/ai", <Sparkles key="ai" size={21} />],
 ];
 
 const initiatives: Array<[string, string, string, string]> = [

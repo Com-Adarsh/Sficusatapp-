@@ -1,0 +1,86 @@
+name: postgres-only-security-ci
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  postgres-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install runner PostgreSQL
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y postgresql postgresql-client postgresql-contrib
+          sudo systemctl start postgresql
+          sudo -u postgres psql -v ON_ERROR_STOP=1 -c "alter role postgres password 'postgres';"
+
+      - name: Install pgvector or create CI stub
+        run: |
+          set -euo pipefail
+          PG_MAJOR="$(pg_config --version | sed -E 's/.* ([0-9]+)\..*/\1/')"
+          if apt-cache show "postgresql-${PG_MAJOR}-pgvector" >/dev/null 2>&1; then
+            sudo apt-get install -y "postgresql-${PG_MAJOR}-pgvector"
+          else
+            sudo mkdir -p "/usr/share/postgresql/${PG_MAJOR}/extension"
+            sudo tee "/usr/share/postgresql/${PG_MAJOR}/extension/vector.control" >/dev/null <<'EOF'
+          comment = 'CI stub for pgvector; current migrations only require CREATE/ALTER EXTENSION'
+          default_version = '0.0.1'
+          module_pathname = '$libdir/vector'
+          relocatable = true
+          EOF
+            sudo tee "/usr/share/postgresql/${PG_MAJOR}/extension/vector--0.0.1.sql" >/dev/null <<'EOF'
+          -- CI-only pgvector stub. No vector type/operator is required by the
+          -- current active migration chain; the extension object is sufficient
+          -- for CREATE EXTENSION and ALTER EXTENSION ... SET SCHEMA.
+          EOF
+          fi
+
+      - name: Build fresh database from baseline and unapplied migrations
+        run: |
+          chmod +x scripts/db-fresh.sh
+          CATALOG_OUT="$RUNNER_TEMP/fresh-catalog.json" scripts/db-fresh.sh sficusatapp_ci
+
+      - name: Show catalog fidelity result
+        run: |
+          test -s "$RUNNER_TEMP/fresh-catalog.json"
+          cmp -s docs/prod-catalog.json "$RUNNER_TEMP/fresh-catalog.json"
+          echo "production catalog == fresh baseline catalog"
+
+      - name: Run fail-safe trigger tests
+        run: bash tests/supabase/handle_new_user_failsafe.sh
+
+      - name: Run every SQL security test
+        run: |
+          set -euo pipefail
+          for file in $(find supabase/tests -maxdepth 1 -type f -name '*.sql' | sort); do
+            echo "=== TEST $file ==="
+            psql -v ON_ERROR_STOP=1 -f "$file"
+          done
+
+      - name: Guard protected refs
+        run: node --import tsx tests/assert-dev-supabase.test.ts
+
+      - name: Ensure profile idempotency test
+        run: node --import tsx tests/ensure-profile.test.ts
+
+      - name: Grievance token cancellation test
+        run: node --import tsx tests/grievance-cancel.test.ts
+
+      - name: Schema drift report
+        run: bash tests/supabase/schema-drift.sh

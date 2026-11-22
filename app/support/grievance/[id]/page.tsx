@@ -1,8 +1,2 @@
-import {createServerClient} from "@/lib/supabase/server";
-import {redirect,notFound} from "next/navigation";
-export default async function GrievanceStatus({params}:{params:Promise<{id:string}>}){
- const {id}=await params;const s=await createServerClient();const {data:auth}=await s.auth.getClaims();if(!auth?.claims)redirect("/sign-in");
- const {data:g}=await s.from("grievances").select("id,ticket_code,title,description,category,status,anonymous,created_at,updated_at").eq("id",id).maybeSingle();if(!g)notFound();
- const {data:updates}=await s.from("grievance_updates").select("status,note,created_at").eq("grievance_id",id).order("created_at",{ascending:true});
- return <main><section className="section"><div className="shell"><a href="/support/grievance">← Submit another grievance</a><div className="eyebrow" style={{marginTop:24}}><i className="dot"/> {g.ticket_code}</div><h1>{g.title}</h1><div className="chips"><span className="chip">{g.category}</span><span className="chip">{g.status}</span>{g.anonymous&&<span className="chip">Anonymous</span>}</div><article className="card" style={{marginTop:24}}><h3>Your submission</h3><p>{g.description}</p><p className="muted">Submitted {new Date(g.created_at).toLocaleString()}</p></article><h2 style={{marginTop:32}}>Status timeline</h2><div style={{marginTop:16}}>{updates?.length?updates.map((u,i)=><article className="card" style={{marginBottom:12}} key={i}><div className="chips"><span className="chip">{u.status}</span><span className="chip">{new Date(u.created_at).toLocaleString()}</span></div><p>{u.note||"Status updated."}</p></article>):<div className="notice">Your grievance has been submitted. No additional update has been recorded yet.</div>}</div></div></section></main>;
-}
+import { redirect } from "next/navigation";
+export default function LegacyGrievanceRoute(){ redirect("/support/grievance/status"); }

@@ -1,0 +1,15 @@
+{
+  "scope": "application-schema-plus-auth-users",
+  "source_project": "jwhyesglviptvklrclll",
+  "catalog": {
+    "tables": [],
+    "columns": [],
+    "constraints": [],
+    "indexes": [],
+    "policies": [],
+    "functions": [],
+    "triggers": [],
+    "views": [],
+    "enums": []
+  }
+}
