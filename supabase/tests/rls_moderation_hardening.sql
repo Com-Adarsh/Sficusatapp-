@@ -1,5 +1,5 @@
 begin;
-select plan(14);
+select plan(17);
 
 -- Student identity.
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
@@ -47,6 +47,38 @@ select throws_ok(
   $update public.scribe_volunteers set status='verified' where owner_id='10000000-0000-0000-0000-000000000001'$,
   'moderation status may only be changed by staff',
   'volunteer cannot self-verify'
+);
+
+-- A student can edit an approved resource only by re-queuing it.
+insert into auth.users (id,email)
+values
+  ('10000000-0000-0000-0000-000000000010','rls-admin@test.local'),
+  ('10000000-0000-0000-0000-000000000011','rls-owner@test.local');
+
+insert into public.user_roles(user_id,role)
+values ('10000000-0000-0000-0000-000000000010','admin');
+
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000011","role":"authenticated"}',true);
+
+insert into public.resources(owner_id,title,category,status)
+values ('10000000-0000-0000-0000-000000000011','file-swap','notes','pending');
+
+set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000010","role":"authenticated"}',true);
+update public.resources
+set status='approved',published_at=now()
+where owner_id='10000000-0000-0000-0000-000000000011' and title='file-swap';
+
+set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000011","role":"authenticated"}',true);
+insert into public.resource_files(resource_id,owner_id,storage_path,original_filename,mime_type,byte_size,sha256)
+select id,owner_id,'rls-test/new.pdf','new.pdf','application/pdf',1,'test-sha'
+from public.resources
+where owner_id='10000000-0000-0000-0000-000000000011' and title='file-swap';
+
+select is(
+  (select status::text from public.resources where owner_id='10000000-0000-0000-0000-000000000011' and title='file-swap'),
+  'pending',
+  'file swap requeues approved resource'
 );
 
 -- Anonymous access is only through the author-free view.
