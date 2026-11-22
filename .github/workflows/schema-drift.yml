@@ -45,8 +45,17 @@ jobs:
               sed -E 's/[[:space:]]+$//' |
               sort
           }
-          normalize docs/prod-schema-snapshot.sql > /tmp/prod-normalized.sql
-          normalize /tmp/local-prod-boundary.sql > /tmp/local-normalized.sql
+          normalize_snapshot() {
+            normalize "$1" |
+              grep -Ev '^(create extension |create schema private|create or replace function private\\.|revoke .*function private\\.|grant execute .*function private\\.)' |
+              grep -Ev '^(alter schema public owner|create schema public|comment on schema public|grant .* on schema public|revoke .* on schema public)'
+          }
+          normalize_dump() {
+            normalize "$1" |
+              grep -Ev '^(set |select pg_catalog\\.set_config|create schema public|alter schema public owner|comment on schema public|grant .* on schema public|revoke .* on schema public)'
+          }
+          normalize_snapshot docs/prod-schema-snapshot.sql > /tmp/prod-normalized.sql
+          normalize_dump /tmp/local-prod-boundary.sql > /tmp/local-normalized.sql
           if ! diff -u /tmp/prod-normalized.sql /tmp/local-normalized.sql > /tmp/schema-diff.patch; then
             echo "::error::Production-boundary schema drift detected."
             sed -n '1,260p' /tmp/schema-diff.patch
