@@ -11,8 +11,7 @@ end $$;
 
 create schema if not exists auth;
 create schema if not exists storage;
-grant usage, create on schema auth to postgres;
-grant usage, create on schema storage to postgres;
+set role supabase_admin;
 
 create table if not exists auth.users (
   id uuid primary key,
@@ -49,3 +48,4 @@ alter table storage.objects enable row level security;
 grant usage on schema auth, storage to anon, authenticated, service_role;
 grant select, insert, update, delete on auth.users to postgres, service_role;
 grant select, insert, update, delete on storage.buckets, storage.objects to postgres, service_role;
+reset role;
