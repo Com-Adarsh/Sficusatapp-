@@ -1,4 +1,4 @@
-name: auth-trigger-failsafe-ci
+name: postgres-only-security-ci
 
 on:
   workflow_dispatch:
@@ -6,31 +6,57 @@ on:
   pull_request:
 
 jobs:
-  auth-trigger-failsafe:
+  postgres-only:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    services:
+      postgres:
+        image: public.ecr.aws/supabase/postgres:17.12.0.000
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
     steps:
       - uses: actions/checkout@v4
-      - uses: supabase/setup-cli@v1
-        with:
-          version: 2.81.3
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-      - run: supabase start
-      - name: Export local Supabase connection values
-        shell: bash
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Prepare Supabase-compatible Postgres shim
+        run: psql -v ON_ERROR_STOP=1 -f tests/supabase/postgres_shim.sql
+      - name: Apply all migrations from empty database
         run: |
           set -euo pipefail
-          eval "$(supabase status -o env)"
-          {
-            echo "API_URL=$API_URL"
-            echo "ANON_KEY=$ANON_KEY"
-            echo "SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
-            echo "POSTGRES_URL=$POSTGRES_URL"
-          } >> "$GITHUB_ENV"
-      - name: Run fail-safe Auth trigger tests
+          for file in $(find supabase/migrations -maxdepth 1 -type f -name '*.sql' | sort); do
+            echo "=== APPLY $file ==="
+            psql -v ON_ERROR_STOP=1 -f "$file"
+          done
+      - name: Apply fail-safe hotfix package to test database
+        run: psql -v ON_ERROR_STOP=1 -f supabase/hotfix/handle_new_user_failsafe.sql
+      - name: Run fail-safe trigger tests
         run: bash tests/supabase/handle_new_user_failsafe.sh
-      - name: Stop local Supabase
-        if: always()
-        run: command -v supabase >/dev/null 2>&1 && supabase stop --no-backup || true
+      - name: Run SQL security tests
+        run: |
+          set -euo pipefail
+          for file in $(find supabase/tests -maxdepth 1 -type f -name '*.sql' | sort); do
+            echo "=== TEST $file ==="
+            psql -v ON_ERROR_STOP=1 -f "$file"
+          done
+      - name: Guard protected refs
+        run: node --import tsx tests/assert-dev-supabase.test.ts
+      - name: Schema drift report
+        run: bash tests/supabase/schema-drift.sh
+      - name: Build application
+        run: |
+          npm ci
+          npm run build
