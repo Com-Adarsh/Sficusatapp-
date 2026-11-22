@@ -43,6 +43,12 @@ create table if not exists storage.objects (
   bucket_id text not null references storage.buckets(id) on delete cascade,
   name text not null, owner_id text, created_at timestamptz not null default now()
 );
+alter table storage.buckets add column if not exists public boolean not null default false;
+alter table storage.buckets add column if not exists file_size_limit bigint;
+alter table storage.buckets add column if not exists allowed_mime_types text[];
+alter table storage.objects add column if not exists owner_id text;
+alter table storage.objects add column if not exists bucket_id text;
+
 alter table storage.buckets enable row level security;
 alter table storage.objects enable row level security;
 grant usage on schema auth, storage to anon, authenticated, service_role;
