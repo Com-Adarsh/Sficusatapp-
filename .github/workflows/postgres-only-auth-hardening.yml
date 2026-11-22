@@ -1,0 +1,103 @@
+name: postgres-only-auth-hardening
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "supabase/**"
+      - "scripts/assert-dev-supabase.ts"
+      - "lib/auth/**"
+      - "lib/grievances/**"
+      - "tests/**"
+      - ".github/workflows/postgres-only-auth-hardening.yml"
+  pull_request:
+    paths:
+      - "supabase/**"
+      - "scripts/assert-dev-supabase.ts"
+      - "lib/auth/**"
+      - "lib/grievances/**"
+      - "tests/**"
+      - ".github/workflows/postgres-only-auth-hardening.yml"
+
+jobs:
+  postgres-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: public.ecr.aws/supabase/postgres:17.12.0.000
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+      PGOPTIONS: "-c request.jwt.claim.role=authenticated -c request.jwt.claim.sub=10000000-0000-0000-0000-000000000001"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Bootstrap auth/storage shim
+        run: psql -v ON_ERROR_STOP=1 -f tests/postgres/auth_shim.sql
+
+      - name: Apply all migrations from empty database
+        run: |
+          set -euo pipefail
+          for f in supabase/migrations/*.sql; do
+            echo "==> $f"
+            psql -v ON_ERROR_STOP=1 -f "$f"
+          done
+
+      - name: Apply production hotfix candidate
+        run: psql -v ON_ERROR_STOP=1 -f supabase/hotfix/handle_new_user_failsafe.sql
+
+      - name: Direct Postgres hotfix tests
+        run: psql -v ON_ERROR_STOP=1 -f tests/supabase/handle_new_user_postgres.sql
+
+      - name: Run pgTAP RLS tests as database owner
+        run: |
+          set -euo pipefail
+          for f in supabase/tests/*.sql; do
+            echo "==> $f"
+            psql -v ON_ERROR_STOP=1 -f "$f"
+          done
+
+      - name: Run TypeScript unit tests
+        run: |
+          npx tsx tests/unit/assert-dev-supabase.test.ts
+          npx tsx tests/unit/ensure-profile.test.ts
+          npx tsx tests/unit/grievance-token-cancel.test.ts
+
+      - name: Schema drift check against production snapshot
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -c "create database snapshot_compare;"
+          PGDATABASE=snapshot_compare psql -v ON_ERROR_STOP=1 -f tests/postgres/auth_shim.sql
+          PGDATABASE=snapshot_compare psql -v ON_ERROR_STOP=1 -f docs/prod-schema-snapshot.sql
+          pg_dump --schema-only --no-owner --no-privileges --no-comments postgres > /tmp/applied-schema.sql
+          pg_dump --schema-only --no-owner --no-privileges --no-comments snapshot_compare > /tmp/prod-snapshot-schema.sql
+          sed -E '/^--/d;/^SET /d;/^SELECT pg_catalog.set_config/d;/^COMMENT ON EXTENSION/d' /tmp/applied-schema.sql > /tmp/applied-schema.norm
+          sed -E '/^--/d;/^SET /d;/^SELECT pg_catalog.set_config/d;/^COMMENT ON EXTENSION/d' /tmp/prod-snapshot-schema.sql > /tmp/prod-snapshot-schema.norm
+          if ! diff -u /tmp/prod-snapshot-schema.norm /tmp/applied-schema.norm; then
+            echo "Schema drift detected. The diff above is the real result."
+            exit 1
+          fi
+          echo "Schema drift check passed."
+
+      - name: Explicit production-ref guard unit test
+        run: |
+          npx tsx tests/unit/assert-dev-supabase.test.ts
