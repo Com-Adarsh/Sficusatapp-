@@ -13,6 +13,7 @@ export default function robots(): MetadataRoute.Robots {
         "/aashraya/coordinator",
         "/sahayi/coordinator",
         "/sahayi/assignments",
+        "/support/helpdesk/academic/cbt/coordinator",
         "/sign-in",
         "/forgot-password",
         "/reset-password",
