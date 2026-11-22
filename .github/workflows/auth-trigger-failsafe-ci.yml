@@ -18,7 +18,19 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
-      - run: supabase start
+      - name: Start local Supabase (debug on startup failure)
+        shell: bash
+        run: |
+          set -o pipefail
+          supabase start 2>&1 | tee /tmp/supabase-start.log || {
+            echo '--- supabase status ---'
+            supabase status || true
+            echo '--- supabase debug retry ---'
+            supabase start --debug || true
+            echo '--- supabase startup log ---'
+            cat /tmp/supabase-start.log || true
+            exit 1
+          }
       - name: Export local Supabase connection values
         shell: bash
         run: |
