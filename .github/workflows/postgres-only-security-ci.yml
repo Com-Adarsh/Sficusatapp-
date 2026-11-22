@@ -68,11 +68,21 @@ jobs:
 
       - name: Bootstrap Supabase-compatible Postgres
         run: docker exec -e PGPASSWORD=postgres -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < tests/supabase/postgres_test_shim.sql
-      - name: Apply production-applied migrations in order
+      - name: Validate legacy 202611210001 foundation in isolation
         run: |
           set -euo pipefail
+          docker exec -e PGPASSWORD=postgres "$DB_CONTAINER" dropdb -U supabase_admin --if-exists legacy_210001
+          docker exec -e PGPASSWORD=postgres "$DB_CONTAINER" createdb -U supabase_admin legacy_210001
+          docker exec -e PGPASSWORD=postgres -i "$DB_CONTAINER" psql -U supabase_admin -d legacy_210001 -v ON_ERROR_STOP=1 -f - < tests/supabase/postgres_test_shim.sql
+          docker exec -e PGPASSWORD=postgres -i "$DB_CONTAINER" psql -U supabase_admin -d legacy_210001 -v ON_ERROR_STOP=1 -f - < supabase/migrations/202611210001_phase1_foundation.sql
+          docker exec -e PGPASSWORD=postgres "$DB_CONTAINER" dropdb -U supabase_admin legacy_210001
+
+      - name: Apply canonical production baseline migrations in order
+        run: |
+          set -euo pipefail
+          # 202611210001 and 20261121161700 are duplicate foundation snapshots in repository history.
+          # 20261121161700 is the valid production "actual" foundation used for the cumulative baseline.
           for f in \
-            supabase/migrations/202611210001_phase1_foundation.sql \
             supabase/migrations/20261121161700_phase1_foundation_actual.sql \
             supabase/migrations/20261121162000_phase2_security_performance.sql \
             supabase/migrations/20261121162500_phase2_advisor_cleanup.sql \
