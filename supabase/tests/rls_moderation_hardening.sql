@@ -7,7 +7,7 @@ set local role authenticated;
 
 -- Moderation status cannot be self-approved.
 select throws_ok(
-  $insert into public.issues(owner_id,category,title,description,status) values ('10000000-0000-0000-0000-000000000001','general','x','x','approved')$,
+  $q$insert into public.issues(owner_id,category,title,description,status) values ('10000000-0000-0000-0000-000000000001','general','x','x','approved')$q$,
   '42501',
   null,
   'student cannot insert an approved issue'
@@ -22,7 +22,7 @@ insert into public.issues(owner_id,category,title,description,status)
 values ('10000000-0000-0000-0000-000000000001','general','pending','pending','pending');
 
 select throws_ok(
-  $update public.issues set status='approved' where owner_id='10000000-0000-0000-0000-000000000001' and title='pending'$,
+  $q$update public.issues set status='approved' where owner_id='10000000-0000-0000-0000-000000000001' and title='pending'$q$,
   'moderation status may only be changed by staff',
   'student cannot approve own issue'
 );
@@ -37,7 +37,7 @@ select is(
 );
 
 select throws_ok(
-  $update public.issues set owner_id='10000000-0000-0000-0000-000000000002' where owner_id='10000000-0000-0000-0000-000000000001' and title='pending'$,
+  $q$update public.issues set owner_id='10000000-0000-0000-0000-000000000002' where owner_id='10000000-0000-0000-0000-000000000001' and title='pending'$q$,
   'owner_id may only be changed by staff',
   'student cannot change owner'
 );
@@ -46,7 +46,7 @@ select throws_ok(
 insert into public.scribe_volunteers(owner_id,availability,status)
 values ('10000000-0000-0000-0000-000000000001','weekdays','pending');
 select throws_ok(
-  $update public.scribe_volunteers set status='verified' where owner_id='10000000-0000-0000-0000-000000000001'$,
+  $q$update public.scribe_volunteers set status='verified' where owner_id='10000000-0000-0000-0000-000000000001'$q$,
   'moderation status may only be changed by staff',
   'volunteer cannot self-verify'
 );
@@ -96,7 +96,7 @@ select ok((select count(*) from public.list_donor_matches('O+',null)) >= 0,'coor
 
 set local role anon;
 select throws_ok(
-  $select * from public.list_donor_matches('O+',null)$,
+  $q$select * from public.list_donor_matches('O+',null)$q$,
   'permission denied for function list_donor_matches',
   'anonymous cannot call donor directory RPC'
 );
