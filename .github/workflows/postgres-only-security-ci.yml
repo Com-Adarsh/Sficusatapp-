@@ -47,7 +47,7 @@ jobs:
           echo "DB_CONTAINER=$DB_CONTAINER" >> "$GITHUB_ENV"
 
       - name: Bootstrap Supabase-compatible Postgres
-        run: docker exec -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < tests/supabase/postgres_test_shim.sql
+        run: docker exec -e PGPASSWORD=postgres -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < tests/supabase/postgres_test_shim.sql
       - name: Apply production-applied migrations in order
         run: |
           set -euo pipefail
@@ -59,17 +59,17 @@ jobs:
             supabase/migrations/20261121163000_phase2_donor_consent_fix.sql
           do
             echo "== APPLY $f =="
-            docker exec -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < "$f"
+            docker exec -e PGPASSWORD=postgres -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < "$f"
           done
       - name: Schema drift against production snapshot
         run: |
           set -euo pipefail
-          docker exec "$DB_CONTAINER" dropdb -U supabase_admin --if-exists schema_snapshot
-          docker exec "$DB_CONTAINER" createdb -U supabase_admin schema_snapshot
-          docker exec -i "$DB_CONTAINER" psql -U supabase_admin -d schema_snapshot -v ON_ERROR_STOP=1 -f - < tests/supabase/postgres_test_shim.sql
-          docker exec -i "$DB_CONTAINER" psql -U supabase_admin -d schema_snapshot -v ON_ERROR_STOP=1 -f - < docs/prod-schema-snapshot.sql
-          docker exec "$DB_CONTAINER" pg_dump -U supabase_admin --schema-only --no-owner --no-privileges --schema=public postgres > /tmp/actual-production-baseline.sql
-          docker exec "$DB_CONTAINER" pg_dump -U supabase_admin --schema-only --no-owner --no-privileges --schema=public schema_snapshot > /tmp/expected-production-baseline.sql
+          docker exec -e PGPASSWORD=postgres "$DB_CONTAINER" dropdb -U supabase_admin --if-exists schema_snapshot
+          docker exec -e PGPASSWORD=postgres "$DB_CONTAINER" createdb -U supabase_admin schema_snapshot
+          docker exec -e PGPASSWORD=postgres -i "$DB_CONTAINER" psql -U supabase_admin -d schema_snapshot -v ON_ERROR_STOP=1 -f - < tests/supabase/postgres_test_shim.sql
+          docker exec -e PGPASSWORD=postgres -i "$DB_CONTAINER" psql -U supabase_admin -d schema_snapshot -v ON_ERROR_STOP=1 -f - < docs/prod-schema-snapshot.sql
+          docker exec -e PGPASSWORD=postgres "$DB_CONTAINER" pg_dump -U supabase_admin --schema-only --no-owner --no-privileges --schema=public postgres > /tmp/actual-production-baseline.sql
+          docker exec -e PGPASSWORD=postgres "$DB_CONTAINER" pg_dump -U supabase_admin --schema-only --no-owner --no-privileges --schema=public schema_snapshot > /tmp/expected-production-baseline.sql
           diff -u /tmp/expected-production-baseline.sql /tmp/actual-production-baseline.sql
 
       - name: Apply staged auth, role and RLS migrations
@@ -81,12 +81,12 @@ jobs:
             supabase/migrations/20261122120000_phase2_rls_hardening.sql
           do
             echo "== APPLY $f =="
-            docker exec -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < "$f"
+            docker exec -e PGPASSWORD=postgres -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < "$f"
           done
       - name: Apply hotfix files
-        run: docker exec -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < supabase/hotfix/handle_new_user_failsafe.sql
+        run: docker exec -e PGPASSWORD=postgres -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < supabase/hotfix/handle_new_user_failsafe.sql
       - name: Hotfix trigger tests
-        run: docker exec -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < supabase/tests/auth_trigger_postgres.sql
+        run: docker exec -e PGPASSWORD=postgres -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < supabase/tests/auth_trigger_postgres.sql
       - name: Run all SQL tests
         run: |
           set -euo pipefail
@@ -95,7 +95,7 @@ jobs:
               supabase/tests/auth_trigger_postgres.sql) continue ;;
             esac
             echo "== TEST $f =="
-            docker exec -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < "$f"
+            docker exec -e PGPASSWORD=postgres -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < "$f"
           done
       - name: Guard unit tests
         run: npx --yes tsx scripts/test-assert-dev-supabase.ts
@@ -103,8 +103,8 @@ jobs:
         if: failure()
         run: |
           echo "=== PostgreSQL version ==="
-          docker exec "$DB_CONTAINER" psql -U supabase_admin -d postgres -c "select version();"
+          docker exec -e PGPASSWORD=postgres "$DB_CONTAINER" psql -U supabase_admin -d postgres -c "select version();"
           echo "=== Tables ==="
-          docker exec "$DB_CONTAINER" psql -U supabase_admin -d postgres -Atc "select schemaname||'.'||tablename from pg_tables where schemaname='public' order by 1;"
+          docker exec -e PGPASSWORD=postgres "$DB_CONTAINER" psql -U supabase_admin -d postgres -Atc "select schemaname||'.'||tablename from pg_tables where schemaname='public' order by 1;"
           echo "=== RLS policies ==="
-          docker exec "$DB_CONTAINER" psql -U supabase_admin -d postgres -Atc "select schemaname||'.'||tablename||' '||policyname||' '||cmd from pg_policies where schemaname='public' order by 1,2,3;" || true
+          docker exec -e PGPASSWORD=postgres "$DB_CONTAINER" psql -U supabase_admin -d postgres -Atc "select schemaname||'.'||tablename||' '||policyname||' '||cmd from pg_policies where schemaname='public' order by 1,2,3;" || true
