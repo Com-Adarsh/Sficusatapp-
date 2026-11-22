@@ -130,6 +130,137 @@ begin
 end;
 $$;
 
+-- Grievance confidentiality: moderators are not grievance officers.
+alter type public.user_role add value if not exists 'grievance_officer';
+
+drop policy if exists grievances_staff on public.grievances;
+drop policy if exists grievance_updates_staff on public.grievance_updates;
+drop policy if exists interventions_staff on public.interventions;
+drop policy if exists tickets_owner on public.tickets;
+
+create policy grievances_officer_read on public.grievances
+for select to authenticated
+using (private.has_role('grievance_officer'::public.user_role) or private.has_role('admin'::public.user_role));
+
+create policy grievance_updates_officer_read on public.grievance_updates
+for select to authenticated
+using (private.has_role('grievance_officer'::public.user_role) or private.has_role('admin'::public.user_role));
+
+create policy interventions_officer_read on public.interventions
+for select to authenticated
+using (private.has_role('grievance_officer'::public.user_role) or private.has_role('admin'::public.user_role));
+
+create policy tickets_officer_read on public.tickets
+for select to authenticated
+using (private.has_role('grievance_officer'::public.user_role) or private.has_role('admin'::public.user_role));
+
+-- Owner cancellation remains an explicit UPDATE path.
+drop policy if exists grievances_owner_cancel on public.grievances;
+create policy grievances_owner_cancel on public.grievances
+for update to authenticated
+using (owner_id=auth.uid())
+with check (owner_id=auth.uid() and status='cancelled');
+
+-- Public/non-sensitive settings are opt-in; all other settings remain admin-only.
+alter table public.site_settings
+  add column if not exists is_public boolean not null default false;
+
+drop policy if exists site_settings_public_read on public.site_settings;
+create policy site_settings_public_read on public.site_settings
+for select to anon, authenticated
+using (is_public=true);
+
+-- INSERT protection: non-staff users cannot publish, verify, resolve, attend/check-in,
+-- review, moderate, reject, or self-assign protected workflow fields.
+create or replace function private.prevent_owner_moderation_insert()
+returns trigger
+language plpgsql
+security definer
+set search_path=''
+as $$
+declare
+  row_data jsonb := to_jsonb(new);
+  col text;
+  forced jsonb := '{}'::jsonb;
+begin
+  if private.has_role('moderator'::public.user_role)
+     or private.has_role('admin'::public.user_role)
+     or private.has_role('grievance_officer'::public.user_role) then
+    return new;
+  end if;
+
+  foreach col in array[
+    'verified','attended','checked_in','check_in_at','checkin_at',
+    'reviewed_by','reviewed_at','published_at',
+    'rejection','rejection_reason','rejected_at',
+    'moderation_status','moderated_by','moderated_at',
+    'assignee_id','assigned_to','reviewer_id'
+  ] loop
+    if row_data ? col then
+      forced := forced || jsonb_build_object(col, null);
+    end if;
+  end loop;
+
+  if row_data ? 'status' then
+    if tg_table_name in ('resources','opportunities','helpdesk_entries','issues',
+                         'scribe_volunteers','scribe_requests') then
+      forced := forced || jsonb_build_object('status','pending');
+    elsif tg_table_name = 'blood_requests' then
+      forced := forced || jsonb_build_object('status','pending');
+    elsif tg_table_name in ('grievances','tickets') then
+      forced := forced || jsonb_build_object('status','open');
+    end if;
+  end if;
+
+  return jsonb_populate_record(new, forced);
+end;
+$$;
+
+-- Attach INSERT protection to every self-insert workflow requested by the security review.
+drop trigger if exists prevent_owner_moderation_insert on public.scribe_volunteers;
+create trigger prevent_owner_moderation_insert before insert on public.scribe_volunteers
+for each row execute function private.prevent_owner_moderation_insert();
+
+drop trigger if exists prevent_owner_moderation_insert on public.scribe_requests;
+create trigger prevent_owner_moderation_insert before insert on public.scribe_requests
+for each row execute function private.prevent_owner_moderation_insert();
+
+drop trigger if exists prevent_owner_moderation_insert on public.event_registrations;
+create trigger prevent_owner_moderation_insert before insert on public.event_registrations
+for each row execute function private.prevent_owner_moderation_insert();
+
+drop trigger if exists prevent_owner_moderation_insert on public.donors;
+create trigger prevent_owner_moderation_insert before insert on public.donors
+for each row execute function private.prevent_owner_moderation_insert();
+
+drop trigger if exists prevent_owner_moderation_insert on public.blood_requests;
+create trigger prevent_owner_moderation_insert before insert on public.blood_requests
+for each row execute function private.prevent_owner_moderation_insert();
+
+drop trigger if exists prevent_owner_moderation_insert on public.grievances;
+create trigger prevent_owner_moderation_insert before insert on public.grievances
+for each row execute function private.prevent_owner_moderation_insert();
+
+drop trigger if exists prevent_owner_moderation_insert on public.tickets;
+create trigger prevent_owner_moderation_insert before insert on public.tickets
+for each row execute function private.prevent_owner_moderation_insert();
+
+drop trigger if exists prevent_owner_moderation_insert on public.resources;
+create trigger prevent_owner_moderation_insert before insert on public.resources
+for each row execute function private.prevent_owner_moderation_insert();
+
+drop trigger if exists prevent_owner_moderation_insert on public.opportunities;
+create trigger prevent_owner_moderation_insert before insert on public.opportunities
+for each row execute function private.prevent_owner_moderation_insert();
+
+drop trigger if exists prevent_owner_moderation_insert on public.helpdesk_entries;
+create trigger prevent_owner_moderation_insert before insert on public.helpdesk_entries
+for each row execute function private.prevent_owner_moderation_insert();
+
+drop trigger if exists prevent_owner_moderation_insert on public.issues;
+create trigger prevent_owner_moderation_insert before insert on public.issues
+for each row execute function private.prevent_owner_moderation_insert();
+
 -- Content tables.
 drop trigger if exists prevent_owner_moderation_change on public.helpdesk_entries;
 create trigger prevent_owner_moderation_change before update on public.helpdesk_entries
