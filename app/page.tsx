@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import PageShell from "./components/PageShell";
 import ModuleLogo from "./components/ModuleLogo";
 import {
@@ -14,6 +16,19 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 
+export const metadata: Metadata = pageMetadata(
+  "SFI CUSAT Student Platform for Campus Life and Resources",
+  "Explore student resources, support, opportunities and campus initiatives for CUSAT students through the SFI CUSAT digital platform.",
+  "/",
+);
+
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "SFI CUSAT Digital Student Platform",
+  url: "https://sficusatapp.vercel.app",
+};
+
 const services: Array<[string, string, string, ReactNode]> = [
   ["Learn", "Notes, question papers and academic resources.", "/resources", <BookOpen size={21} />],
   ["Student Support", "Academic, hostel and student helpdesk services.", "/support", <LifeBuoy size={21} />],
@@ -29,7 +44,12 @@ const initiatives: Array<[string, string, string, string]> = [
 
 export default function Home() {
   return (
-    <PageShell>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+      />
+      <PageShell>
       <section className="reference-hero">
         <div className="shell">
           <span className="reference-pill">SFI CUSAT · Digital Student Platform</span>
@@ -132,6 +152,7 @@ export default function Home() {
           </div>
         </section>
       </main>
-    </PageShell>
+      </PageShell>
+    </>
   );
 }
