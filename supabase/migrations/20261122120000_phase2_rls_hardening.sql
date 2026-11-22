@@ -391,9 +391,13 @@ for all to authenticated using (false) with check (false);
 
 -- Non-staff blood-request deletion becomes cancellation.
 drop policy if exists blood_requests_owner on public.blood_requests;
-create policy blood_requests_owner on public.blood_requests
-for select, insert, update to authenticated
-using (owner_id=auth.uid())
+drop policy if exists blood_requests_owner_select on public.blood_requests;
+drop policy if exists blood_requests_owner_insert on public.blood_requests;
+create policy blood_requests_owner_select on public.blood_requests
+for select to authenticated
+using (owner_id=auth.uid());
+create policy blood_requests_owner_insert on public.blood_requests
+for insert to authenticated
 with check (owner_id=auth.uid());
 
 drop policy if exists blood_requests_owner_cancel on public.blood_requests;
