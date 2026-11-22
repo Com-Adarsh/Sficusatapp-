@@ -40,3 +40,23 @@ create table if not exists public.leaderboard (
   created_at timestamptz default now()
 );
 alter table public.leaderboard enable row level security;
+
+create table if not exists storage.buckets (
+  id text primary key,
+  name text not null unique,
+  public boolean not null default false,
+  file_size_limit bigint,
+  allowed_mime_types text[]
+);
+create table if not exists storage.objects (
+  id uuid primary key default gen_random_uuid(),
+  bucket_id text not null,
+  name text not null,
+  owner_id text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  last_accessed_at timestamptz default now(),
+  metadata jsonb,
+  version text
+);
+alter table storage.objects enable row level security;
