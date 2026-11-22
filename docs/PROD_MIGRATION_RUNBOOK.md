@@ -17,7 +17,7 @@
 
 ## 2. Apply order
 
-1. Apply the approved auth trigger hotfix only.
+1. Apply `supabase/hotfix/handle_new_user_apply_and_verify.sql` in the Supabase SQL editor; it contains only the `public.handle_new_user()` replacement plus immediate verification queries.
 2. Verify the function definition and trigger.
 3. Run one controlled throwaway signup.
 4. Verify profiles and user_roles rows.
@@ -49,6 +49,8 @@ If the hotfix causes an unexpected problem:
 6. Do not delete or rewrite migration history to hide an applied migration.
 
 ## 5. Production verification SQL
+
+Use `supabase/hotfix/handle_new_user_apply_and_verify.sql` for the one-paste SQL-editor operation. The post-signup query in that file is intentionally commented until a throwaway email exists.
 
 Use the prepared one-paste SQL in the deployment PR. It must verify:
 - public.handle_new_user() retains SECURITY DEFINER and empty search_path.
