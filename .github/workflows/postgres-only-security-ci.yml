@@ -82,7 +82,7 @@ jobs:
           set -euo pipefail
           # 202611210001 and 20261121161700 are duplicate foundation snapshots in repository history.
           # 20261121161700 is the valid production "actual" foundation used for the cumulative baseline.
-          # The legacy file is syntax-checked in isolation against the current Phase 2 branch.
+          # The legacy file is syntax-checked in isolation against the current Phase 2 branch after foundation quoting reconciliation.
           for f in \
             supabase/migrations/20261121161700_phase1_foundation_actual.sql \
             supabase/migrations/20261121162000_phase2_security_performance.sql \
