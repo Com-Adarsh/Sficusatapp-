@@ -1,5 +1,4 @@
 -- Phase 2 RLS hardening. NOT APPLIED TO PRODUCTION.
--- Donor area is absent from the production donor schema; add it here so the coordinator directory has an explicit area field.
 -- Migrations first, code merge second.
 
 -- Announcements/events are moderation-owned.
@@ -16,8 +15,8 @@ for all to authenticated
 using (private.has_role('moderator'::public.user_role) or private.has_role('admin'::public.user_role))
 with check (private.has_role('moderator'::public.user_role) or private.has_role('admin'::public.user_role));
 
--- For student-contributed moderation queues, owners may create only pending rows.
--- BEFORE UPDATE trigger below prevents owners from changing moderation/ownership fields.
+-- Student-contributed moderation queues: owners may create/edit only their own pending rows.
+-- The moderation trigger below re-queues approved content when an owner edits it.
 drop policy if exists helpdesk_owner on public.helpdesk_entries;
 create policy helpdesk_owner on public.helpdesk_entries
 for all to authenticated
@@ -63,7 +62,114 @@ with check (
   or (owner_id=auth.uid())
 );
 
+-- One BEFORE UPDATE trigger protects ownership and all moderation/verification fields.
+-- Protected fields: owner_id; status; verified; reviewed_by; reviewed_at; published_at;
+-- rejection/rejection_reason/rejected_at; moderation_status/moderated_by/moderated_at;
+-- attended; checked_in; check_in_at; checkin_at.
+-- Tables covered: resources, opportunities, helpdesk_entries, issues,
+-- scribe_volunteers, scribe_requests, event_registrations, donors, profiles.
+-- Profiles has no moderation field in the current schema; its id is already protected by RLS.
+-- Event registrations currently has no attendance/check-in field; the JSONB checks below
+-- automatically cover those fields if they are added later without a new trigger.
 create or replace function private.prevent_owner_moderation_change()
+returns trigger
+language plpgsql
+security definer
+set search_path=''
+as $$
+declare
+  old_row jsonb := to_jsonb(old);
+  new_row jsonb := to_jsonb(new);
+  protected_column text;
+begin
+  if private.has_role('moderator'::public.user_role) or private.has_role('admin'::public.user_role) then
+    return new;
+  end if;
+
+  if new_row ? 'owner_id' and new_row->'owner_id' is distinct from old_row->'owner_id' then
+    raise exception 'owner_id may only be changed by staff';
+  end if;
+
+  -- Approved student content is never edited in place: the edit is re-queued.
+  if tg_table_name in ('resources','opportunities','helpdesk_entries','issues')
+     and new_row ? 'status'
+     and old_row->>'status' = 'approved'
+     and new_row->>'status' <> 'pending' then
+    new := jsonb_populate_record(new, jsonb_build_object('status','pending'));
+    if new_row ? 'published_at' then
+      new := jsonb_populate_record(new, jsonb_build_object('published_at',null));
+    end if;
+    new_row := to_jsonb(new);
+  end if;
+
+  foreach protected_column in array[
+    'verified','reviewed_by','reviewed_at','published_at',
+    'rejection','rejection_reason','rejected_at',
+    'moderation_status','moderated_by','moderated_at',
+    'attended','checked_in','check_in_at','checkin_at'
+  ] loop
+    if new_row ? protected_column
+       and new_row->protected_column is distinct from old_row->protected_column then
+      raise exception '% may only be changed by staff', protected_column;
+    end if;
+  end loop;
+
+  -- Status is protected everywhere it exists, except an approved content edit
+  -- which is intentionally re-queued to pending above.
+  if new_row ? 'status' and new_row->'status' is distinct from old_row->'status' then
+    if tg_table_name in ('resources','opportunities','helpdesk_entries','issues')
+       and old_row->>'status' = 'approved'
+       and new_row->>'status' = 'pending' then
+      null;
+    else
+      raise exception 'moderation status may only be changed by staff';
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+-- Content tables.
+drop trigger if exists prevent_owner_moderation_change on public.helpdesk_entries;
+create trigger prevent_owner_moderation_change before update on public.helpdesk_entries
+for each row execute function private.prevent_owner_moderation_change();
+
+drop trigger if exists prevent_owner_moderation_change on public.issues;
+create trigger prevent_owner_moderation_change before update on public.issues
+for each row execute function private.prevent_owner_moderation_change();
+
+drop trigger if exists prevent_owner_moderation_change on public.opportunities;
+create trigger prevent_owner_moderation_change before update on public.opportunities
+for each row execute function private.prevent_owner_moderation_change();
+
+drop trigger if exists prevent_owner_moderation_change on public.resources;
+create trigger prevent_owner_moderation_change before update on public.resources
+for each row execute function private.prevent_owner_moderation_change();
+
+-- Self-service sensitive workflows.
+drop trigger if exists prevent_owner_moderation_change on public.scribe_volunteers;
+create trigger prevent_owner_moderation_change before update on public.scribe_volunteers
+for each row execute function private.prevent_owner_moderation_change();
+
+drop trigger if exists prevent_owner_moderation_change on public.scribe_requests;
+create trigger prevent_owner_moderation_change before update on public.scribe_requests
+for each row execute function private.prevent_owner_moderation_change();
+
+drop trigger if exists prevent_owner_moderation_change on public.event_registrations;
+create trigger prevent_owner_moderation_change before update on public.event_registrations
+for each row execute function private.prevent_owner_moderation_change();
+
+drop trigger if exists prevent_owner_moderation_change on public.donors;
+create trigger prevent_owner_moderation_change before update on public.donors
+for each row execute function private.prevent_owner_moderation_change();
+
+drop trigger if exists prevent_owner_moderation_change on public.profiles;
+create trigger prevent_owner_moderation_change before update on public.profiles
+for each row execute function private.prevent_owner_moderation_change();
+
+-- A file change invalidates publication of the parent resource.
+create or replace function private.requeue_resource_after_file_change()
 returns trigger
 language plpgsql
 security definer
@@ -71,26 +177,21 @@ set search_path=''
 as $$
 begin
   if not (private.has_role('moderator'::public.user_role) or private.has_role('admin'::public.user_role)) then
-    if new.owner_id is distinct from old.owner_id then
-      raise exception 'owner_id may only be changed by staff';
-    end if;
-    if tg_table_name in ('announcements','events','helpdesk_entries','issues','opportunities','resources')
-       and new.status is distinct from old.status then
-      raise exception 'moderation status may only be changed by staff';
-    end if;
+    update public.resources
+       set status='pending',
+           published_at=null
+     where id=coalesce(new.resource_id,old.resource_id)
+       and owner_id=(select auth.uid())
+       and status='approved';
   end if;
-  return new;
+  return coalesce(new,old);
 end;
 $$;
 
-drop trigger if exists prevent_owner_moderation_change on public.helpdesk_entries;
-create trigger prevent_owner_moderation_change before update on public.helpdesk_entries for each row execute function private.prevent_owner_moderation_change();
-drop trigger if exists prevent_owner_moderation_change on public.issues;
-create trigger prevent_owner_moderation_change before update on public.issues for each row execute function private.prevent_owner_moderation_change();
-drop trigger if exists prevent_owner_moderation_change on public.opportunities;
-create trigger prevent_owner_moderation_change before update on public.opportunities for each row execute function private.prevent_owner_moderation_change();
-drop trigger if exists prevent_owner_moderation_change on public.resources;
-create trigger prevent_owner_moderation_change before update on public.resources for each row execute function private.prevent_owner_moderation_change();
+drop trigger if exists requeue_resource_after_file_change on public.resource_files;
+create trigger requeue_resource_after_file_change
+after insert or update or delete on public.resource_files
+for each row execute function private.requeue_resource_after_file_change();
 
 -- Public issues are exposed only through the author-free security-barrier view.
 drop policy if exists issues_public_approved on public.issues;
@@ -113,7 +214,20 @@ as $$
     and d.available = true;
 $$;
 revoke all on function public.list_donor_matches(text,text) from public;
+revoke all on function public.list_donor_matches(text,text) from anon;
 grant execute on function public.list_donor_matches(text,text) to authenticated;
+
+-- Leaderboard remains locked. No public read policy is created.
+drop policy if exists leaderboard_public_read on public.leaderboard;
+drop policy if exists leaderboard_sessions_public_read on public.leaderboard_sessions;
+create policy leaderboard_deny_anon on public.leaderboard
+for all to anon using (false) with check (false);
+create policy leaderboard_deny_authenticated on public.leaderboard
+for all to authenticated using (false) with check (false);
+create policy leaderboard_sessions_deny_anon on public.leaderboard_sessions
+for all to anon using (false) with check (false);
+create policy leaderboard_sessions_deny_authenticated on public.leaderboard_sessions
+for all to authenticated using (false) with check (false);
 
 -- Non-staff blood-request deletion becomes cancellation.
 drop policy if exists blood_requests_owner on public.blood_requests;
@@ -122,16 +236,17 @@ for select, insert, update to authenticated
 using (owner_id=auth.uid())
 with check (owner_id=auth.uid());
 
+drop policy if exists blood_requests_owner_cancel on public.blood_requests;
 create policy blood_requests_owner_cancel on public.blood_requests
 for update to authenticated
 using (owner_id=auth.uid())
 with check (owner_id=auth.uid() and status='cancelled');
 
 -- Grievance owners have no DELETE policy; add explicit cancellation update.
+drop policy if exists grievances_owner_cancel on public.grievances;
 create policy grievances_owner_cancel on public.grievances
 for update to authenticated
 using (owner_id=auth.uid())
 with check (owner_id=auth.uid() and status='cancelled');
 
--- Explicitly remove non-staff DELETE capability from blood requests.
 revoke delete on public.blood_requests from authenticated;
