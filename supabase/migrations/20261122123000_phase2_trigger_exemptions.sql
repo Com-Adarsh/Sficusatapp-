@@ -1,6 +1,12 @@
--- Phase 2 auth/RLS trigger compatibility. NOT APPLIED TO PRODUCTION.
--- Signup runs through supabase_auth_admin; ensure_profile and token APIs use service_role.
--- session_user is preserved across SECURITY DEFINER execution, unlike current_user.
+-- Phase 2 trigger exemptions. NOT APPLIED TO PRODUCTION.
+-- UNTESTED until CI is green.
+--
+-- Trusted paths:
+--   * Supabase Auth signup: session_user = supabase_auth_admin
+--   * PostgREST/server service path: auth.role() = service_role
+--
+-- Do not use session_user = service_role: PostgREST normally connects as
+-- authenticator and changes role to service_role from the JWT role claim.
 
 create or replace function private.prevent_owner_moderation_change()
 returns trigger
@@ -13,8 +19,8 @@ declare
   new_row jsonb := to_jsonb(new);
   protected_column text;
 begin
-  -- Trusted server paths must not be blocked by end-user moderation guards.
-  if session_user in ('service_role','supabase_auth_admin') then
+  if session_user = 'supabase_auth_admin'
+     or auth.role() = 'service_role' then
     return new;
   end if;
 
@@ -74,8 +80,8 @@ declare
   col text;
   forced jsonb := '{}'::jsonb;
 begin
-  -- Signup and server reconciliation are trusted write paths.
-  if session_user in ('service_role','supabase_auth_admin') then
+  if session_user = 'supabase_auth_admin'
+     or auth.role() = 'service_role' then
     return new;
   end if;
 
