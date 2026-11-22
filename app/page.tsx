@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo";
 import PageShell from "./components/PageShell";
-import ModuleLogo from "./components/ModuleLogo";
 import {
   ArrowRight,
   BookOpen,
@@ -59,11 +58,11 @@ export default function Home() {
             community services across CUSAT.
           </p>
 
-          <div className="reference-search">
+          <form className="reference-search" action="/search">
             <Search size={18} aria-hidden="true" />
-            <input aria-label="Search the platform" placeholder="Search notes, services, departments, scholarships…" />
-            <span style={{ marginLeft: "auto", color: "#8a929c", fontSize: 11 }}>⌘ K</span>
-          </div>
+            <input name="q" aria-label="Search the platform" placeholder="Search notes, services, departments, scholarships…" />
+            <span className="reference-search-shortcut" aria-hidden="true">⌘ K</span>
+          </form>
 
           <div className="reference-tags">
             <span>Department-aware</span>
@@ -73,10 +72,10 @@ export default function Home() {
         </div>
       </section>
 
-      <main className="shell reference-main">
+      <main id="main-content" className="shell reference-main">
         <a className="reference-sos" href="/aashraya/request">
-          <span className="sos-title"><Droplets size={17} /> Need blood urgently?</span>
-          <span>Post a request to Aashraya <ArrowRight size={16} /></span>
+          <span className="sos-title"><Droplets size={17} aria-hidden="true" /> Need blood urgently?</span>
+          <span>Post a request to Aashraya <ArrowRight size={16} aria-hidden="true" /></span>
         </a>
 
         <section className="reference-section" aria-labelledby="services-title">
@@ -85,20 +84,16 @@ export default function Home() {
               <h2 id="services-title">What do you need?</h2>
               <p>Start with a service instead of navigating a complicated menu.</p>
             </div>
-            <a className="reference-text-link" href="/search">Search all <ArrowRight size={14} /></a>
+            <a className="reference-text-link" href="/search" aria-label="Search all resources"><Search size={14} aria-hidden="true" /> Search all <ArrowRight size={14} aria-hidden="true" /></a>
           </div>
 
           <div className="reference-grid">
             {services.map(([title, description, href, icon]) => (
               <a className="reference-card" href={href} key={title}>
-                {title === "SCHOLARX" ? (
-                  <ModuleLogo type="scholarx" size="sm" />
-                ) : (
-                  <span className="reference-card-icon">{icon}</span>
-                )}
+                <span className="reference-card-icon" aria-hidden="true">{icon}</span>
                 <h3>{title}</h3>
                 <p>{description}</p>
-                <span className="reference-card-link">Open <ArrowRight size={14} /></span>
+                <span className="reference-card-link">Open <ArrowRight size={14} aria-hidden="true" /></span>
               </a>
             ))}
           </div>
@@ -122,7 +117,7 @@ export default function Home() {
                 <span className="reference-module">{name}</span>
                 <h3>{title}</h3>
                 <p>{description}</p>
-                <span className="reference-card-link">Open module <ArrowRight size={14} /></span>
+                <span className="reference-card-link">Open module <ArrowRight size={14} aria-hidden="true" /></span>
               </a>
             ))}
           </div>
@@ -131,24 +126,18 @@ export default function Home() {
         <section className="reference-section">
           <div className="reference-quick">
             <div>
-              <span className="reference-pill"><Sparkles size={13} /> Personal student space</span>
+              <span className="reference-pill"><Sparkles size={13} aria-hidden="true" /> Personal student space</span>
               <h2>Set up your academic profile</h2>
               <p>
                 Save your department, programme, scheme and semester once. The
                 platform can then use that context across resources, support and AI.
               </p>
               <div className="reference-actions">
-                <a className="reference-button primary" href="/profile"><UserRound size={15} /> Set up profile</a>
-                <a className="reference-button" href="/resources"><BookOpen size={15} /> Find resources</a>
+                <a className="reference-button primary" href="/profile"><UserRound size={15} aria-hidden="true" /> Set up profile</a>
+                <a className="reference-button" href="/resources"><BookOpen size={15} aria-hidden="true" /> Find resources</a>
               </div>
             </div>
-            <div className="reference-note">
-              <ShieldCheck size={19} />
-              <div>
-                <strong>Student-run platform</strong>
-                <p>Run by SFI CUSAT. Not an official website of Cochin University of Science and Technology.</p>
-              </div>
-            </div>
+
           </div>
         </section>
       </main>
