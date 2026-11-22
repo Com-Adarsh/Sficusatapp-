@@ -269,5 +269,26 @@ select is((select count(*) from public.leaderboard),0::bigint,'anonymous cannot 
 select is((select count(*) from public.leaderboard_sessions),0::bigint,'anonymous cannot read locked leaderboard sessions');
 select is((select count(*) from information_schema.columns where table_schema='public' and table_name='donor_contact_details' and column_name in ('phone','whatsapp','email')),3::bigint,'contact fields remain isolated from donor directory');
 
+-- Owner cancellation is deliberately not a direct RLS UPDATE path.
+-- A confidential grievance is created by an admin; the owner cannot see/update it.
+set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000010","role":"authenticated"}',true);
+insert into public.grievances(owner_id,tracking_token_hash,title,description,category,status)
+values ('10000000-0000-0000-0000-000000000001','cancel-token-hash','Cancel test','private','general','open');
+
+set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
+update public.grievances set status='cancelled' where tracking_token_hash='cancel-token-hash';
+select is(
+  (select count(*) from public.grievances where tracking_token_hash='cancel-token-hash' and status='cancelled'),
+  0::bigint,
+  'owner cannot cancel confidential grievance through direct RLS update'
+);
+
+set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000010","role":"authenticated"}',true);
+select is(
+  (select count(*) from public.grievances where tracking_token_hash='cancel-token-hash' and status='open'),
+  1::bigint,
+  'confidential grievance remains open until token API cancellation'
+);
+
 select * from finish();
 rollback;
