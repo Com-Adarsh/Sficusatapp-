@@ -1,6 +1,6 @@
 # Production RLS Matrix — current baseline + proposed hardening
 
-Captured from production read-only on 2026-11-21. The hardening rows marked **PROPOSED** are in `20261122120000_phase2_rls_hardening.sql` and have **not** been applied.
+Captured from production read-only on 2026-11-22. The hardening rows marked **PROPOSED** are in `20261122120000_phase2_rls_hardening.sql` and have **not** been applied.
 
 Legend:
 - Self = authenticated owner.
@@ -21,25 +21,25 @@ Legend:
 | donation_camps | Public approved; Aashraya/Admin | Aashraya/Admin | Aashraya/Admin | Aashraya/Admin | Aashraya/Admin | Aashraya/Admin |
 | donor_contact_details | Self; Aashraya/Admin only when donor consent=true | Self | Self | Self | Self | Self |
 | donor_matches | Aashraya/Admin | Aashraya/Admin | Aashraya/Admin | Aashraya/Admin | Aashraya/Admin | Aashraya/Admin |
-| donors | Self | Self | Self | Self | Self | Self |
-| event_registrations | Self | Self | Self | Self | Self | Self |
+| donors | Self | Self | Self | Self; **owner_id protected** | **PROPOSED:** protected moderation fields cannot be self-changed | Self |
+| event_registrations | Self | Self | Self | Self; **attendance fields protected if present** | **PROPOSED:** protected fields cannot be self-changed | Self |
 | events | Public approved; Staff | **PROPOSED:** Staff only | Staff | **PROPOSED:** Staff only | Staff | Staff |
 | grievance_updates | Grievance owner; Staff | Staff | Staff | Staff | Staff | Staff |
 | grievances | Owner; Staff | Owner; Staff | Owner/Staff | Staff | Staff | **PROPOSED:** no owner DELETE; owner cancellation via UPDATE |
-| helpdesk_entries | Public approved; Self; Staff | Self/Staff | **PROPOSED:** Self requires status=pending | Self/Staff | **PROPOSED:** non-staff cannot change owner/status | Staff |
+| helpdesk_entries | Public approved; Self; Staff | Self/Staff | **PROPOSED:** Self requires status=pending | Self/Staff | **PROPOSED:** approved edits requeue to pending; protected fields cannot be self-changed | Staff |
 | interventions | Owner/coordinator; Staff | Coordinator/Staff | Coordinator/Staff | Coordinator/Staff | Coordinator/Staff | Coordinator/Staff |
-| issues | **PROPOSED:** public_issues view only; Self; Staff | Self/Staff | **PROPOSED:** Self requires owner_id=auth.uid() and status=pending | Self/Staff | **PROPOSED:** non-staff cannot change owner/status | Staff |
-| leaderboard | **Public — USING(true)** | — | — | — | — | — |
-| leaderboard_sessions | SELECT policy false | — | — | — | — | — |
+| issues | **PROPOSED:** public_issues view only; Self; Staff | Self/Staff | **PROPOSED:** Self requires owner_id=auth.uid() and status=pending | Self/Staff | **PROPOSED:** approved edits requeue to pending; protected fields cannot be self-changed | Staff |
+| leaderboard | **PROPOSED: explicit deny for anon/authenticated** | — | — | — | — | — |
+| leaderboard_sessions | **PROPOSED: explicit deny for anon/authenticated** | — | — | — | — | — |
 | notifications | Self | Self | Self | Self | Self | Self |
-| opportunities | Public approved; Self; Staff | Self/Staff | **PROPOSED:** Self requires status=pending and own owner_id | Self/Staff | **PROPOSED:** non-staff cannot change owner/status | Staff |
-| profiles | Self | Self | Self | Self | Self | Self |
+| opportunities | Public approved; Self; Staff | Self/Staff | **PROPOSED:** Self requires status=pending and own owner_id | Self/Staff | **PROPOSED:** approved edits requeue to pending; protected fields cannot be self-changed | Staff |
+| profiles | Self | Self | Self | Self; **id protected by owner policy** | **PROPOSED:** id cannot be changed | Self |
 | programmes | **Public — USING(true)** | — | — | — | — | — |
-| resource_files | Self | Self | Self | Self | Self | Self |
-| resources | Public approved; Self; Staff | Self/Staff | **PROPOSED:** Self requires status=pending and own owner_id | Self/Staff | **PROPOSED:** non-staff cannot change owner/status | Staff |
+| resource_files | Self | Self | Self | Self; **file changes requeue parent resource** | Self | Self |
+| resources | Public approved; Self; Staff | Self/Staff | **PROPOSED:** Self requires status=pending and own owner_id | Self/Staff | **PROPOSED:** approved edits requeue to pending; protected fields cannot be self-changed | Staff |
 | scribe_assignments | Request/volunteer owner; Sahayi/Admin | Sahayi/Admin | Sahayi/Admin | Sahayi/Admin | Sahayi/Admin | Sahayi/Admin |
-| scribe_requests | Self; Sahayi/Admin | Self; Sahayi/Admin | Self; Sahayi/Admin | Self; Sahayi/Admin | Self; Sahayi/Admin | Self; Sahayi/Admin |
-| scribe_volunteers | Self; Sahayi/Admin | Self; Sahayi/Admin | Self; Sahayi/Admin | Self; Sahayi/Admin | Self; Sahayi/Admin | Self; Sahayi/Admin |
+| scribe_requests | Self; Sahayi/Admin | Self; Sahayi/Admin | Self; Sahayi/Admin | Self; Sahayi/Admin; **status protected** | **PROPOSED:** non-staff cannot change status | Self; Sahayi/Admin |
+| scribe_volunteers | Self; Sahayi/Admin | Self; Sahayi/Admin | Self; Sahayi/Admin | Self; Sahayi/Admin; **status protected** | **PROPOSED:** non-staff cannot change status | Self; Sahayi/Admin |
 | site_settings | Admin | Admin | Admin | Admin | Admin | Admin |
 | tickets | Self; Staff | Self/Staff | Self owner | Self/Staff | **PROPOSED:** non-staff cannot change owner | Staff |
 | user_roles | Self read; Admin | Admin | Admin | Admin | Admin | Admin |
@@ -47,34 +47,40 @@ Legend:
 ## High-risk findings and proposed disposition
 
 ### 1. Student self-approval
-The baseline owner policies used `FOR ALL` with only `owner_id=auth.uid()`, which did not constrain moderation status. The proposed migration removes owner write access from announcements/events and constrains student-created helpdesk/issues/opportunities/resources to `status='pending'`. A BEFORE UPDATE trigger prevents non-staff owner/status changes.
+The baseline owner policies used FOR ALL with only owner_id=auth.uid(), which did not constrain moderation status. The proposed migration removes owner write access from announcements/events and constrains student-created helpdesk/issues/opportunities/resources to status=pending. A BEFORE UPDATE trigger protects ownership and protected moderation fields and automatically re-queues edits to approved content to pending.
 
 ### 2. Anonymous issue exposure
-The baseline public issue policy is removed. Anonymous/public access is through `public.public_issues`, which contains only `id, category, title, description, created_at` and deliberately excludes `owner_id`.
+The baseline public issue policy is removed. Anonymous/public access is through public.public_issues, which contains only id, category, title, description, created_at and deliberately excludes owner_id.
 
 ### 3. Donor matching
-The production `donors` table currently has no area column and is self-only. The proposed migration adds nullable `donors.area` and a SECURITY DEFINER coordinator/admin RPC `list_donor_matches(blood_group, area)` returning only donor id, blood group, area, availability and consent. Contact data remains in `donor_contact_details` behind consent.
+The production donors table currently has no area column and is self-only. The proposed migration adds nullable donors.area and a SECURITY DEFINER coordinator/admin RPC list_donor_matches(blood_group, area) returning only donor id, blood group, area, availability and consent. Contact data remains in donor_contact_details behind consent. The RPC explicitly revokes EXECUTE from PUBLIC and anon, grants it to authenticated, checks coordinator/admin role inside the function, and uses search_path=''.
 
 ### 4. Leaderboard
 Current columns:
-- `leaderboard.id`
-- `run_id`
-- `player_name`
-- `score`
-- `distance_meters`
-- `blockades`
-- `elapsed_seconds`
-- `created_at`
+- leaderboard.id
+- run_id
+- player_name
+- score
+- distance_meters
+- blockades
+- elapsed_seconds
+- created_at
 
-`player_name` is personal data when it identifies a person; the remaining gameplay/technical fields are not normally direct identifiers. `leaderboard_sessions` contains `id, ip_hash, started_at, expires_at, submitted_at`; `ip_hash` is derived network information and should be treated as personal data. Recommendation: **drop the unconditional public leaderboard policy unless the product explicitly accepts public player names.** If kept, consider a public view with a pseudonym instead of raw player_name. No change is made by the hardening migration.
+leaderboard_sessions contains id, ip_hash, started_at, expires_at, submitted_at. player_name can be personal data and ip_hash is derived network information. The original locked behavior is restored: the proposed migration drops the unconditional public-read policy and creates explicit deny policies for anon and authenticated on both tables. A repository search found no current code reference to either table, so no live anon-key feature has been demonstrated.
 
-### 5. Hard deletes
+### 5. Protected self-updates
+The proposed trigger covers resources, opportunities, helpdesk_entries, issues, scribe_volunteers, scribe_requests, event_registrations, donors and profiles. Protected fields are: owner_id, status, verified, reviewed_by, reviewed_at, published_at, rejection, rejection_reason, rejected_at, moderation_status, moderated_by, moderated_at, attended, checked_in, check_in_at, and checkin_at. The current production schema has status on scribe requests/volunteers; event registrations currently has no attendance field; profiles currently has no moderation field. JSONB-based checks cover future additions of those named fields without changing the trigger attachment.
+
+### 6. File replacement after approval
+resource_files self-writes remain allowed, but an insert/update/delete by a non-staff owner automatically sets the parent approved resource back to pending and clears published_at. This prevents a previously approved publication from silently changing underneath its approval record.
+
+### 7. Hard deletes
 The proposed migration removes authenticated DELETE from blood requests and provides cancellation via status update. Grievance owners already have no DELETE policy; the proposed migration adds explicit owner cancellation through UPDATE. Staff retention/deletion rules remain separate.
 
 ## Explicit USING(true) policies in current production
 
-1. `departments_public_read`
-2. `programmes_public_read`
-3. `leaderboard_public_read`
+1. departments_public_read
+2. programmes_public_read
+3. leaderboard_public_read
 
-These are the only unconditional public-read policies identified in the production snapshot.
+These are the only unconditional public-read policies identified in the production snapshot. The hardening migration explicitly removes leaderboard_public_read; departments and programmes remain public.
