@@ -21,13 +21,13 @@ Legend:
 | donation_camps | Public approved; Aashraya/Admin | Aashraya/Admin | Aashraya/Admin | Aashraya/Admin | Aashraya/Admin | Aashraya/Admin |
 | donor_contact_details | Self; Aashraya/Admin only when donor consent=true | Self | Self | Self | Self | Self |
 | donor_matches | Aashraya/Admin | Aashraya/Admin | Aashraya/Admin | Aashraya/Admin | Aashraya/Admin | Aashraya/Admin |
-| donors | Self | Self | Self | Self; **owner_id protected** | **PROPOSED:** protected moderation fields cannot be self-changed | Self |
-| event_registrations | Self | Self | Self | Self; **attendance fields protected if present** | **PROPOSED:** protected fields cannot be self-changed | Self |
+| donors | Self | Self | **PROPOSED:** protected fields cleared on insert | Self; **owner_id protected** | **PROPOSED:** protected moderation fields cannot be self-changed | Self |
+| event_registrations | Self | Self | **PROPOSED:** protected attendance fields cleared if present | Self; protected fields | **PROPOSED:** protected fields cannot be self-changed | Self |
 | events | Public approved; Staff | **PROPOSED:** Staff only | Staff | **PROPOSED:** Staff only | Staff | Staff |
-| grievance_updates | Grievance owner; Staff | Staff | Staff | Staff | Staff | Staff |
-| grievances | Owner; Staff | Owner; Staff | Owner/Staff | Staff | Staff | **PROPOSED:** no owner DELETE; owner cancellation via UPDATE |
+| grievance_updates | **PROPOSED:** Grievance officer/admin only | Staff workflow | **PROPOSED:** protected fields | Staff workflow | Staff workflow | Staff workflow |
+| grievances | **PROPOSED:** Grievance officer/admin only | Self | **PROPOSED:** status forced open; protected fields cleared | **PROPOSED:** owner cancellation; officer/admin moderation | **PROPOSED:** owner may only set status=cancelled | Staff/officer |
 | helpdesk_entries | Public approved; Self; Staff | Self/Staff | **PROPOSED:** Self requires status=pending | Self/Staff | **PROPOSED:** approved edits requeue to pending; protected fields cannot be self-changed | Staff |
-| interventions | Owner/coordinator; Staff | Coordinator/Staff | Coordinator/Staff | Coordinator/Staff | Coordinator/Staff | Coordinator/Staff |
+| interventions | **PROPOSED:** Grievance officer/admin only | Coordinator/Staff | Coordinator/Staff | Coordinator/Staff | Coordinator/Staff | Coordinator/Staff |
 | issues | **PROPOSED:** public_issues view only; Self; Staff | Self/Staff | **PROPOSED:** Self requires owner_id=auth.uid() and status=pending | Self/Staff | **PROPOSED:** approved edits requeue to pending; protected fields cannot be self-changed | Staff |
 | leaderboard | **PROPOSED: explicit deny for anon/authenticated** | — | — | — | — | — |
 | leaderboard_sessions | **PROPOSED: explicit deny for anon/authenticated** | — | — | — | — | — |
@@ -40,8 +40,8 @@ Legend:
 | scribe_assignments | Request/volunteer owner; Sahayi/Admin | Sahayi/Admin | Sahayi/Admin | Sahayi/Admin | Sahayi/Admin | Sahayi/Admin |
 | scribe_requests | Self; Sahayi/Admin | Self; Sahayi/Admin | Self; Sahayi/Admin | Self; Sahayi/Admin; **status protected** | **PROPOSED:** non-staff cannot change status | Self; Sahayi/Admin |
 | scribe_volunteers | Self; Sahayi/Admin | Self; Sahayi/Admin | Self; Sahayi/Admin | Self; Sahayi/Admin; **status protected** | **PROPOSED:** non-staff cannot change status | Self; Sahayi/Admin |
-| site_settings | Admin | Admin | Admin | Admin | Admin | Admin |
-| tickets | Self; Staff | Self/Staff | Self owner | Self/Staff | **PROPOSED:** non-staff cannot change owner | Staff |
+| site_settings | **PROPOSED:** anon/authenticated where is_public=true; Admin otherwise | Admin | Admin | Admin | Admin | Admin |
+| tickets | **PROPOSED:** Grievance officer/admin only | Self | **PROPOSED:** status forced open; protected fields cleared | Self; officer/admin | **PROPOSED:** protected fields cannot be self-changed | Staff |
 | user_roles | Self read; Admin | Admin | Admin | Admin | Admin | Admin |
 
 ## High-risk findings and proposed disposition
@@ -84,3 +84,24 @@ The proposed migration removes authenticated DELETE from blood requests and prov
 3. leaderboard_public_read
 
 These are the only unconditional public-read policies identified in the production snapshot. The hardening migration explicitly removes leaderboard_public_read; departments and programmes remain public.
+
+
+## Grievance confidentiality
+
+The proposed migration adds the grievance_officer role. Moderators are not granted SELECT on grievances, grievance_updates, interventions, or tickets. Owner-read policies on grievances, grievance_updates, and interventions are removed. Owners may still submit grievances and cancel them through the explicit owner-cancel UPDATE policy.
+
+## Insert-side protection
+
+A BEFORE INSERT trigger covers scribe_volunteers, scribe_requests, event_registrations, donors, blood_requests, grievances, tickets, resources, opportunities, helpdesk_entries, and issues. For non-staff users it clears reviewer/assignee/moderation fields and forces safe status defaults: pending for moderation/content/scribe/blood workflows and open for grievances/tickets. Future named verified, attended, checked-in, reviewer, rejection, or assignee columns are also cleared automatically.
+
+## Public issues
+
+Production public.public_issues is filtered to status='approved' and anonymous=true, exposes only id/category/title/description/created_at, and has no owner_id or author columns. Its reloptions are security_barrier=true and security_invoker=true. The proposed hardening keeps this as the public path and revokes direct anon SELECT on issues.
+
+## Site settings
+
+The proposed migration adds is_public boolean not null default false. A public SELECT policy exposes only is_public=true rows; all other settings remain admin-only. This supports non-sensitive public notices such as coordinator contact information and the 112 notice.
+
+## Leaderboard
+
+A read-only production Supabase Edge Functions check returned zero Edge Functions. Therefore no current Supabase Edge Function touches leaderboard or leaderboard_sessions. The proposed migration restores the locked baseline with explicit deny policies and removes leaderboard_public_read.
