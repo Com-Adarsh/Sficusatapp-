@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { BookOpen, CircleUserRound, Home, LifeBuoy, Menu, Search, Sparkles, X } from "lucide-react";
 
@@ -15,7 +15,36 @@ const icons: Record<string, React.ReactNode> = {
 export default function SiteHeader() {
   const [open,setOpen]=useState(false);
   const pathname=usePathname();
-  const isActive=(href:string)=>href==="?" ? false : href==="/" ? pathname==="/" : pathname.startsWith(href);
+  const moreButtonRef=useRef<HTMLButtonElement>(null);
+  const drawerRef=useRef<HTMLDivElement>(null);
+  const isActive=(href:string)=>href==="/" ? pathname==="/" : pathname.startsWith(href);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setOpen(false);
+        moreButtonRef.current?.focus();
+      }
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      if (drawerRef.current && !drawerRef.current.contains(event.target as Node) && moreButtonRef.current && !moreButtonRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [open]);
+
   return <header className="reference-header">
     <nav className="nav">
       <div className="shell navin">
@@ -29,17 +58,17 @@ export default function SiteHeader() {
         <div className="nav-actions">
           <a className="icon-btn reference-icon" href="/search" aria-label="Search the platform"><Search size={17} aria-hidden="true" /></a>
           <a className="btn primary desktop-sign reference-sign" href="/sign-in">Sign in</a>
-          <button className="menu-btn" onClick={()=>setOpen(!open)} aria-expanded={open} aria-label={open?"Close menu":"Open menu"}>{open?<X size={20} aria-hidden="true" />:<Menu size={20} aria-hidden="true" />}</button>
+          <button className="menu-btn" onClick={()=>setOpen(!open)} aria-expanded={open} aria-controls="mobile-more-drawer" aria-label={open?"Close menu":"Open menu"}>{open?<X size={20} aria-hidden="true" />:<Menu size={20} aria-hidden="true" />}</button>
         </div>
       </div>
-      {open&&<div id="mobile-more-drawer" className="mobile-menu reference-mobile-menu"><div className="shell">
+      {open&&<div id="mobile-more-drawer" ref={drawerRef} className="mobile-menu reference-mobile-menu"><div className="shell">
         {moreLinks.map(([key,label,href])=><a key={key} href={href} aria-current={isActive(href)?"page":undefined} onClick={()=>setOpen(false)}><span><span aria-hidden="true">{icons[key]}</span>{label}</span><span aria-hidden="true">→</span></a>)}
         <a href="/sign-in" onClick={()=>setOpen(false)}>Sign in <span aria-hidden="true">→</span></a>
       </div></div>}
     </nav>
     <nav className="mobilebar reference-mobilebar" aria-label="Mobile navigation">
       {[primary[0],primary[1],primary[4],primary[2]].map(([key,label,href])=><a key={key} href={href} aria-current={isActive(href)?"page":undefined}><b aria-hidden="true">{icons[key]}</b>{label==="Study AI"?"AI":label}</a>)}
-      <button type="button" className="reference-mobile-more" aria-expanded={open} aria-controls="mobile-more-drawer" onClick={()=>setOpen(!open)}><b aria-hidden="true"><Menu size={16} /></b>More</button>
+      <button ref={moreButtonRef} type="button" className="reference-mobile-more" aria-expanded={open} aria-controls="mobile-more-drawer" onClick={()=>setOpen(!open)}><b aria-hidden="true"><Menu size={16} /></b>More</button>
     </nav>
   </header>;
 }

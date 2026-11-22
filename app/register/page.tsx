@@ -41,7 +41,7 @@ export default function Register() {
   }
 
   return (
-    <main className="auth">
+    <div className="auth">
       <div className="authcard">
         <a href="/" className="back">← Back</a>
         <div className="mark big">SFI</div>

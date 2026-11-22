@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "convex:dev": "convex dev",
-    "convex:deploy": "convex deploy"
+    "convex:deploy": "convex deploy",
+    "check:landmarks:static": "node scripts/check-landmarks.mjs --static",
+    "check:landmarks": "node scripts/check-landmarks.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",

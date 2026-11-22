@@ -72,7 +72,7 @@ export default function Home() {
         </div>
       </section>
 
-      <main id="main-content" className="shell reference-main">
+      <div className="shell reference-main">
         <a className="reference-sos" href="/aashraya/request">
           <span className="sos-title"><Droplets size={17} aria-hidden="true" /> Need blood urgently?</span>
           <span>Post a request to Aashraya <ArrowRight size={16} aria-hidden="true" /></span>
