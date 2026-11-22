@@ -131,8 +131,8 @@ end;
 $$;
 
 -- Grievance confidentiality: moderators are not grievance officers.
-alter type public.user_role add value if not exists 'grievance_officer';
-
+-- The grievance_officer enum value is added by the preceding migration
+-- 20261122115000_phase2_grievance_officer_role.
 drop policy if exists grievances_staff on public.grievances;
 drop policy if exists grievances_owner on public.grievances;
 drop policy if exists grievance_updates_owner on public.grievance_updates;
