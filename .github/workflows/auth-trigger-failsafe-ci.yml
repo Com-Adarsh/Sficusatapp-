@@ -1,0 +1,39 @@
+name: auth-trigger-failsafe-ci
+
+on:
+  push:
+    branches:
+      - phase2-safety-reconciliation
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  auth-trigger-failsafe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: supabase start
+      - name: Export local Supabase connection values
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(supabase status -o env)"
+          {
+            echo "API_URL=$API_URL"
+            echo "ANON_KEY=$ANON_KEY"
+            echo "SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "POSTGRES_URL=$POSTGRES_URL"
+          } >> "$GITHUB_ENV"
+      - name: Run fail-safe Auth trigger tests
+        run: bash tests/supabase/handle_new_user_failsafe.sh
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup
