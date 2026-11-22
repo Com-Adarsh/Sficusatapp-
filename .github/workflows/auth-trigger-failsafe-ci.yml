@@ -27,7 +27,7 @@ jobs:
             echo '--- supabase status ---'
             supabase status || true
             echo '--- supabase debug retry ---'
-            supabase start --debug || true
+            supabase start -x realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor --debug || true
             echo '--- supabase startup log ---'
             cat /tmp/supabase-start.log || true
             exit 1
