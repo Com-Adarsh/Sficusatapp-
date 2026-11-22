@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createHash } from "node:crypto";
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
 import { cancelGrievanceByToken } from "@/lib/grievances/token";
