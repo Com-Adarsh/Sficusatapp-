@@ -207,6 +207,11 @@ declare
   col text;
   forced jsonb := '{}'::jsonb;
 begin
+  -- Trusted SECURITY DEFINER/service-role paths may reconcile protected rows.
+  if current_user in ('postgres','service_role') then
+    return new;
+  end if;
+
   if private.has_role('moderator'::public.user_role)
      or private.has_role('admin'::public.user_role)
      or private.has_role('grievance_officer'::public.user_role) then
