@@ -90,7 +90,7 @@ begin
     raise exception 'owner_id may only be changed by staff';
   end if;
 
-  foreach protected_column in array[
+  foreach protected_column in array array[
     'verified','reviewed_by','reviewed_at','published_at',
     'rejection','rejection_reason','rejected_at',
     'moderation_status','moderated_by','moderated_at',
@@ -208,7 +208,7 @@ begin
     return new;
   end if;
 
-  foreach col in array[
+  foreach col in array array[
     'verified','attended','checked_in','check_in_at','checkin_at',
     'reviewed_by','reviewed_at','published_at',
     'rejection','rejection_reason','rejected_at',
