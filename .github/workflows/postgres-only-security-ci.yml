@@ -1,0 +1,105 @@
+name: postgres-only-security-ci
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+jobs:
+  postgres-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: supabase/postgres:15.8.1.085
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Wait for Postgres
+        run: |
+          for i in {1..60}; do
+            pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" && exit 0
+            sleep 2
+          done
+          exit 1
+      - name: Bootstrap Supabase-compatible Postgres
+        run: psql -v ON_ERROR_STOP=1 -f tests/supabase/postgres_test_shim.sql
+      - name: Apply production-applied migrations in order
+        run: |
+          set -euo pipefail
+          for f in \
+            supabase/migrations/202611210001_phase1_foundation.sql \
+            supabase/migrations/20261121161700_phase1_foundation_actual.sql \
+            supabase/migrations/20261121162000_phase2_security_performance.sql \
+            supabase/migrations/20261121162500_phase2_advisor_cleanup.sql \
+            supabase/migrations/20261121163000_phase2_donor_consent_fix.sql
+          do
+            echo "== APPLY $f =="
+            psql -v ON_ERROR_STOP=1 -f "$f"
+          done
+      - name: Apply staged auth, role and RLS migrations
+        run: |
+          set -euo pipefail
+          for f in \
+            supabase/migrations/20261121170000_phase2_auth_foundation.sql \
+            supabase/migrations/20261121171000_phase2_role_rpc.sql \
+            supabase/migrations/20261122120000_phase2_rls_hardening.sql
+          do
+            echo "== APPLY $f =="
+            psql -v ON_ERROR_STOP=1 -f "$f"
+          done
+      - name: Apply hotfix files
+        run: psql -v ON_ERROR_STOP=1 -f supabase/hotfix/handle_new_user_failsafe.sql
+      - name: Hotfix trigger tests
+        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/auth_trigger_postgres.sql
+      - name: Run all SQL tests
+        run: |
+          set -euo pipefail
+          for f in supabase/tests/*.sql; do
+            case "$f" in
+              supabase/tests/auth_trigger_postgres.sql) continue ;;
+            esac
+            echo "== TEST $f =="
+            psql -v ON_ERROR_STOP=1 -f "$f"
+          done
+      - name: Guard unit tests
+        run: npx --yes tsx scripts/test-assert-dev-supabase.ts
+      - name: Schema drift against production snapshot
+        run: |
+          set -euo pipefail
+          pg_dump --schema-only --no-owner --no-privileges --schema=public > /tmp/actual-public-schema.sql
+          sed -E \
+            -e '/^-- Dumped from database version/d' \
+            -e '/^-- Dumped by pg_dump version/d' \
+            -e '/^SET /d' \
+            -e '/^SELECT pg_catalog.set_config/d' \
+            -e '/^\\connect /d' \
+            docs/prod-schema-snapshot.sql > /tmp/expected-public-schema.sql
+          diff -u /tmp/expected-public-schema.sql /tmp/actual-public-schema.sql
+      - name: Print failure diagnostics
+        if: failure()
+        run: |
+          echo "=== PostgreSQL version ==="
+          psql -c "select version();"
+          echo "=== Tables ==="
+          psql -Atc "select schemaname||'.'||tablename from pg_tables where schemaname='public' order by 1;"
+          echo "=== RLS policies ==="
+          psql -Atc "select schemaname||'.'||tablename||' '||policyname||' '||cmd from pg_policies where schemaname='public' order by 1,2,3;" || true
