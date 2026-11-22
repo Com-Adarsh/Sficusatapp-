@@ -17,17 +17,9 @@ begin
   if not exists (select 1 from pg_roles where rolname='service_role') then create role service_role nologin bypassrls; end if;
 end $$;
 
-create or replace function auth.uid()
-returns uuid language sql stable
-as $$ select nullif(current_setting('request.jwt.claim.sub', true),'')::uuid $$;
-
-create or replace function auth.jwt()
-returns jsonb language sql stable
-as $$ select coalesce(nullif(current_setting('request.jwt.claims', true),''),'{}')::jsonb $$;
-
-create or replace function auth.role()
-returns text language sql stable
-as $$ select coalesce(nullif(current_setting('request.jwt.claim.role', true),''), current_user::text) $$;
+-- The Supabase Postgres image already provides auth.uid(), auth.jwt(), and
+-- auth.role(). Keep those image-native definitions so the shim does not try
+-- to replace functions owned by supabase_auth_admin.
 
 create table if not exists auth.users (
   instance_id uuid, id uuid primary key, aud varchar, role varchar, email varchar,
@@ -55,7 +47,6 @@ create table if not exists storage.objects (
   id uuid primary key default gen_random_uuid(), bucket_id text, owner_id text, name text
 );
 
-grant usage, create on schema auth, storage, private to postgres, service_role;
-grant usage on schema auth, storage to anon, authenticated;
+grant usage on schema auth, storage to postgres, anon, authenticated, service_role;
 grant select, insert, update, delete on auth.users to postgres, service_role;
 grant select, insert, update, delete on storage.buckets, storage.objects to postgres, service_role;
