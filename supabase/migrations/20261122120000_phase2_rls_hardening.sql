@@ -134,6 +134,9 @@ $$;
 alter type public.user_role add value if not exists 'grievance_officer';
 
 drop policy if exists grievances_staff on public.grievances;
+drop policy if exists grievances_owner on public.grievances;
+drop policy if exists grievance_updates_owner on public.grievance_updates;
+drop policy if exists interventions_owner on public.interventions;
 drop policy if exists grievance_updates_staff on public.grievance_updates;
 drop policy if exists interventions_staff on public.interventions;
 drop policy if exists tickets_owner on public.tickets;
@@ -153,6 +156,15 @@ using (private.has_role('grievance_officer'::public.user_role) or private.has_ro
 create policy tickets_officer_read on public.tickets
 for select to authenticated
 using (private.has_role('grievance_officer'::public.user_role) or private.has_role('admin'::public.user_role));
+
+create policy tickets_owner_insert on public.tickets
+for insert to authenticated
+with check (owner_id=auth.uid());
+
+create policy tickets_owner_update on public.tickets
+for update to authenticated
+using (owner_id=auth.uid())
+with check (owner_id=auth.uid());
 
 -- Owner cancellation remains an explicit UPDATE path.
 drop policy if exists grievances_owner_cancel on public.grievances;
