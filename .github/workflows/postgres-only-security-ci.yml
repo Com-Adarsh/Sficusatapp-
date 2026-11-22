@@ -84,7 +84,7 @@ jobs:
               supabase/tests/auth_trigger_postgres.sql) continue ;;
             esac
             echo "== TEST $f =="
-            psql -v ON_ERROR_STOP=1 -f "$f"
+            docker exec -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < "$f"
           done
       - name: Guard unit tests
         run: npx --yes tsx scripts/test-assert-dev-supabase.ts
