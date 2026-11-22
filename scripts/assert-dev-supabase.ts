@@ -1,6 +1,6 @@
-const BLOCKED_REFS = new Set([
-  "bdeuecrwqrnlwhxwbpmi",
+const PROTECTED_REFS = new Set([
   "jwhyesglviptvklrclll",
+  "uzfgyojiiqasohlozsyx",
 ]);
 
 export function assertDevSupabaseTarget(
@@ -12,7 +12,7 @@ export function assertDevSupabaseTarget(
       "REFUSED: ALLOWED_DEV_REF is unset. Set it explicitly to the intended DEV Supabase project before running this script.",
     );
   }
-  if (BLOCKED_REFS.has(allowedDevRef)) {
+  if (PROTECTED_REFS.has(allowedDevRef)) {
     throw new Error(`REFUSED: ALLOWED_DEV_REF ${allowedDevRef} is explicitly blocked.`);
   }
   if (BLOCKED_REFS.has(projectRef ?? "")) {
