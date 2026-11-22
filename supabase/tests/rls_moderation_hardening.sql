@@ -130,8 +130,34 @@ insert into public.resources(owner_id,title,category,status)
 values ('10000000-0000-0000-0000-000000000001','insert-test','notes','approved');
 select is((select status::text from public.resources where owner_id='10000000-0000-0000-0000-000000000001' and title='insert-test'),'pending','resource insert cannot self-approve');
 
--- Event registration currently has no attended/check-in column; trigger coverage is asserted instead.
-select ok(exists(select 1 from pg_trigger where tgname='prevent_owner_moderation_insert' and tgrelid='public.event_registrations'::regclass),'event registration has insert moderation trigger');
+-- Every self-insert workflow has the common INSERT trigger.
+select is(
+  (select count(*)
+   from pg_trigger
+   where tgname='prevent_owner_moderation_insert'
+     and tgrelid in (
+       'public.scribe_volunteers'::regclass,
+       'public.scribe_requests'::regclass,
+       'public.event_registrations'::regclass,
+       'public.donors'::regclass,
+       'public.blood_requests'::regclass,
+       'public.grievances'::regclass,
+       'public.tickets'::regclass,
+       'public.resources'::regclass,
+       'public.opportunities'::regclass,
+       'public.helpdesk_entries'::regclass,
+       'public.issues'::regclass,
+       'public.profiles'::regclass
+     )),
+  12::bigint,
+  'all 12 reviewed self-insert tables have the common INSERT moderation trigger'
+);
+
+select throws_ok(
+  $q$insert into public.profiles(id,full_name) values ('10000000-0000-0000-0000-000000000002','wrong owner')$q$,
+  'profile id may only be set to the current user',
+  'student cannot insert a profile for another user'
+);
 
 -- Grievance confidentiality.
 set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
