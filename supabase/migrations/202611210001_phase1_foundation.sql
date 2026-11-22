@@ -9,7 +9,7 @@ create schema if not exists private;
 create type public.moderation_status as enum ('pending','approved','rejected');
 create type public.user_role as enum ('student','moderator','admin','aashraya_coordinator','sahayi_coordinator');
 
-create or replace function public.set_updated_at() returns trigger language plpgsql as $$begin new.updated_at=now(); return new.updated_at; end$$;
+create or replace function public.set_updated_at() returns trigger language plpgsql as $$begin new.updated_at=now(); return new; end$;
 
 
 create table public.profiles (
