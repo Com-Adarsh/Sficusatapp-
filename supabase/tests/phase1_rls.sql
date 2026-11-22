@@ -53,5 +53,4 @@ select is((select count(*) from public.user_roles where user_id='00000000-0000-0
 
 select * from finish();
 
-select * from finish();
 rollback;
