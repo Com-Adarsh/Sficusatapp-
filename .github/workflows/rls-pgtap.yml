@@ -1,0 +1,40 @@
+name: rls-pgtap
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+jobs:
+  rls-pgtap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: supabase start
+      - name: Run pgTAP RLS tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(supabase status -o env)"
+          run_test() {
+            local file="$1"
+            echo "== $file =="
+            psql "$POSTGRES_URL" -v ON_ERROR_STOP=1 -X -f "$file" 2>&1 | tee "/tmp/$(basename "$file").log"
+            if grep -Eq '^not ok ' "/tmp/$(basename "$file").log"; then
+              echo "pgTAP failure detected in $file"
+              return 1
+            fi
+            if ! grep -Eq '^ok [0-9]+ -' "/tmp/$(basename "$file").log"; then
+              echo "No pgTAP assertions detected in $file"
+              return 1
+            fi
+          }
+          run_test supabase/tests/phase1_rls.sql
+          run_test supabase/tests/rls_authenticated_roles.sql
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup
