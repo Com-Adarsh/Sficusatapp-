@@ -1,12 +1,9 @@
 name: auth-trigger-failsafe-ci
 
 on:
+  workflow_dispatch:
   push:
-    branches:
-      - phase2-safety-reconciliation
   pull_request:
-    branches:
-      - main
 
 jobs:
   auth-trigger-failsafe:
