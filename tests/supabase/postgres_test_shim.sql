@@ -11,6 +11,8 @@ end $$;
 
 create schema if not exists auth;
 create schema if not exists storage;
+grant usage, create on schema auth to postgres;
+grant usage, create on schema storage to postgres;
 
 create table if not exists auth.users (
   id uuid primary key,
