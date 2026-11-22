@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import PageShell from "./components/PageShell";
 import ModuleLogo from "./components/ModuleLogo";
 import {
@@ -13,6 +15,12 @@ import {
   UserRound,
 } from "lucide-react";
 import type { ReactNode } from "react";
+
+export const metadata: Metadata = pageMetadata(
+  "SFI CUSAT Student Platform",
+  "Explore student resources, support, opportunities and campus initiatives for CUSAT students through the SFI CUSAT digital platform.",
+  "/",
+);
 
 const websiteJsonLd = {
   "@context": "https://schema.org",
