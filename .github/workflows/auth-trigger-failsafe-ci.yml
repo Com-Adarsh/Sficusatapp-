@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.81.3
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
@@ -33,4 +33,4 @@ jobs:
         run: bash tests/supabase/handle_new_user_failsafe.sh
       - name: Stop local Supabase
         if: always()
-        run: supabase stop --no-backup
+        run: command -v supabase >/dev/null 2>&1 && supabase stop --no-backup || true
