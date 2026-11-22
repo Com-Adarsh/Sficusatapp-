@@ -25,7 +25,7 @@ Legend:
 | event_registrations | Self | Self | **PROPOSED:** protected attendance fields cleared if present | Self; protected fields | **PROPOSED:** protected fields cannot be self-changed | Self |
 | events | Public approved; Staff | **PROPOSED:** Staff only | Staff | **PROPOSED:** Staff only | Staff | Staff |
 | grievance_updates | **PROPOSED:** Grievance officer/admin only | **PROPOSED:** Officer/admin only; student submission uses server API | Officer/admin | **PROPOSED:** Officer/admin only | Officer/admin | Officer/admin |
-| grievances | **PROPOSED:** Grievance officer/admin only | **PROPOSED:** Officer/admin only; student submission uses server API | Officer/admin | **PROPOSED:** Officer/admin only; token API handles owner cancellation | Officer/admin | Officer/admin |
+| grievances | **PROPOSED:** Grievance officer/admin only; signed-in owners use status-only RPC | **PROPOSED:** Officer/admin only; student submission uses server API | Officer/admin | **PROPOSED:** Officer/admin only; token API handles owner cancellation | Officer/admin | Officer/admin |
 | helpdesk_entries | Public approved; Self; Staff | Self/Staff | **PROPOSED:** Self requires status=pending | Self/Staff | **PROPOSED:** approved edits requeue to pending; protected fields cannot be self-changed | Staff |
 | interventions | **PROPOSED:** Grievance officer/admin only | **PROPOSED:** Officer/admin only | Officer/admin | **PROPOSED:** Officer/admin only | Officer/admin | Officer/admin |
 | issues | **PROPOSED:** public_issues view only; Self; Staff | Self/Staff | **PROPOSED:** Self requires owner_id=auth.uid() and status=pending | Self/Staff | **PROPOSED:** approved edits requeue to pending; protected fields cannot be self-changed | Staff |
@@ -33,7 +33,7 @@ Legend:
 | leaderboard_sessions | **PROPOSED: explicit deny for anon/authenticated** | — | — | — | — | — |
 | notifications | Self | Self | Self | Self | Self | Self |
 | opportunities | Public approved; Self; Staff | Self/Staff | **PROPOSED:** Self requires status=pending and own owner_id | Self/Staff | **PROPOSED:** approved edits requeue to pending; protected fields cannot be self-changed | Staff |
-| profiles | Self | Self | Self | Self; **id protected by owner policy** | **PROPOSED:** id cannot be changed | Self |
+| profiles | Self | Self + trusted signup/service reconciliation | Self; trusted server paths bypass end-user trigger | Self; **id protected by owner policy** | **PROPOSED:** id cannot be changed | Self |
 | programmes | **Public — USING(true)** | — | — | — | — | — |
 | resource_files | Self | Self | Self | Self; **file changes requeue parent resource** | Self | Self |
 | resources | Public approved; Self; Staff | Self/Staff | **PROPOSED:** Self requires status=pending and own owner_id | Self/Staff | **PROPOSED:** approved edits requeue to pending; protected fields cannot be self-changed | Staff |
@@ -87,6 +87,9 @@ These are the only unconditional public-read policies identified in the producti
 
 
 ## Grievance confidentiality
+
+The proposed owner status RPC `public.get_my_grievance_status()` returns only `id`, `category`, `status`, and `created_at` for `auth.uid()` ownership. It is SECURITY DEFINER, executable by authenticated only, and explicitly revoked from anon/public. It does not expose grievance description.
+
 
 The proposed migration adds the `grievance_officer` role. Moderators are not granted SELECT, INSERT, UPDATE, or DELETE on grievances, grievance_updates, interventions, or tickets. Every direct DML policy on those four tables is limited to grievance_officer/admin. Student grievance submission remains a server API operation using the service client. Grievance cancellation is also routed through the token-based server API, avoiding the PostgreSQL UPDATE/SELECT RLS interaction.
 
