@@ -38,6 +38,14 @@ jobs:
         run: |
           set -euo pipefail
           for file in $(find supabase/migrations -maxdepth 1 -type f -name '*.sql' | sort); do
+            # 202611210001 was a historical duplicate foundation migration whose
+            # contents were later superseded by 20261121161700. It is already
+            # recorded as applied in production, but cannot be replayed against
+            # a fresh database because both files create the same tables.
+            if [[ "$file" == "supabase/migrations/202611210001_phase1_foundation.sql" ]]; then
+              echo "=== SKIP legacy duplicate $file ==="
+              continue
+            fi
             echo "=== APPLY $file ==="
             psql -v ON_ERROR_STOP=1 -f "$file"
           done
