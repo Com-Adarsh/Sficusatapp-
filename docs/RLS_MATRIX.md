@@ -105,3 +105,8 @@ The proposed migration adds is_public boolean not null default false. A public S
 ## Leaderboard
 
 A read-only production Supabase Edge Functions check returned zero Edge Functions. Therefore no current Supabase Edge Function touches leaderboard or leaderboard_sessions. The proposed migration restores the locked baseline with explicit deny policies and removes leaderboard_public_read.
+## Auth profile recovery
+
+The fail-safe `handle_new_user()` trigger intentionally allows `auth.users` creation to succeed even if a profile or student-role side effect fails. The application therefore exposes a server-only `POST /api/auth/ensure-profile` reconciliation path. It reads the authenticated Supabase user, then uses the server-side service client to idempotently upsert the missing `profiles` row and `student` role. The corresponding test calls the reconciliation twice and verifies that only one profile and one student role result.
+
+The production hotfix remains function-only. It does not backfill or alter existing production rows.
