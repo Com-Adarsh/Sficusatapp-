@@ -1,5 +1,5 @@
 begin;
-select plan(15);
+select plan(26);
 
 -- Student identity.
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
@@ -83,6 +83,52 @@ select is(
   'file swap requeues approved resource'
 );
 
+
+-- INSERT-side moderation protection.
+insert into public.scribe_volunteers(owner_id,availability,status)
+values ('10000000-0000-0000-0000-000000000001','weekends','verified');
+select is((select status from public.scribe_volunteers where owner_id='10000000-0000-0000-0000-000000000001' order by created_at desc limit 1),'pending','volunteer insert cannot self-verify');
+
+insert into public.scribe_requests(owner_id,subject,exam_date,status)
+values ('10000000-0000-0000-0000-000000000001','test','2030-01-01','approved');
+select is((select status from public.scribe_requests where owner_id='10000000-0000-0000-0000-000000000001' order by created_at desc limit 1),'pending','scribe request insert cannot self-approve');
+
+insert into public.donors(owner_id,blood_group,available,consent)
+values ('10000000-0000-0000-0000-000000000001','O+',true,true);
+select is((select available from public.donors where owner_id='10000000-0000-0000-0000-000000000001' order by created_at desc limit 1),true,'donor insert retains availability but protected verification fields are absent');
+
+insert into public.blood_requests(owner_id,requester_name,phone,blood_group,units,hospital,district,status)
+values ('10000000-0000-0000-0000-000000000001','Test','0000000000','O+',1,'Test Hospital','Ernakulam','resolved');
+select is((select status from public.blood_requests where owner_id='10000000-0000-0000-0000-000000000001' order by created_at desc limit 1),'pending','blood request insert cannot self-resolve');
+
+insert into public.grievances(owner_id,tracking_token_hash,title,description,category,status)
+values ('10000000-0000-0000-0000-000000000001','test-hash','Test grievance','Test','academic','resolved');
+select is((select status from public.grievances where owner_id='10000000-0000-0000-0000-000000000001' order by created_at desc limit 1),'open','grievance insert cannot self-resolve');
+
+insert into public.tickets(owner_id,module,title,status)
+values ('10000000-0000-0000-0000-000000000001','test','Test ticket','resolved');
+select is((select status from public.tickets where owner_id='10000000-0000-0000-0000-000000000001' order by created_at desc limit 1),'open','ticket insert cannot self-resolve');
+
+insert into public.helpdesk_entries(owner_id,module,title,status)
+values ('10000000-0000-0000-0000-000000000001','test','Test helpdesk','approved');
+select is((select status::text from public.helpdesk_entries where owner_id='10000000-0000-0000-0000-000000000001' order by created_at desc limit 1),'pending','helpdesk insert cannot self-approve');
+
+insert into public.opportunities(owner_id,type,title,organisation,source_url,last_verified_at,status)
+values ('10000000-0000-0000-0000-000000000001','internship','Test opportunity','Test','https://example.com',now(),'approved');
+select is((select status::text from public.opportunities where owner_id='10000000-0000-0000-0000-000000000001' order by created_at desc limit 1),'pending','opportunity insert cannot self-approve');
+
+-- Resource and issue insert-side protection.
+insert into public.resources(owner_id,title,category,status)
+values ('10000000-0000-0000-0000-000000000001','insert-test','notes','approved');
+select is((select status::text from public.resources where owner_id='10000000-0000-0000-0000-000000000001' and title='insert-test'),'pending','resource insert cannot self-approve');
+
+-- Event registration currently has no attended/check-in column; trigger coverage is asserted instead.
+select ok(exists(select 1 from pg_trigger where tgname='prevent_owner_moderation_insert' and tgrelid='public.event_registrations'::regclass),'event registration has insert moderation trigger');
+
+-- Grievance confidentiality.
+set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
+select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
+select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 -- Anonymous access is only through the author-free view.
 set local role anon;
 select is((select count(*) from public.issues),0::bigint,'anonymous cannot select issues table');
