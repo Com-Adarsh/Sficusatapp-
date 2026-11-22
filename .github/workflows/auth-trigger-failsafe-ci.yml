@@ -47,19 +47,16 @@ jobs:
           EOF
           fi
 
-      - name: Prepare Supabase-compatible Postgres shim
-        run: psql -v ON_ERROR_STOP=1 -f tests/supabase/postgres_shim.sql
-
-      - name: Apply every active migration from an empty database
+      - name: Build fresh database from baseline and unapplied migrations
         run: |
-          set -euo pipefail
-          for file in $(find supabase/migrations -maxdepth 1 -type f -name '*.sql' | sort); do
-            echo "=== APPLY $file ==="
-            psql -v ON_ERROR_STOP=1 -f "$file"
-          done
+          chmod +x scripts/db-fresh.sh
+          CATALOG_OUT="$RUNNER_TEMP/fresh-catalog.json" scripts/db-fresh.sh sficusatapp_ci
 
-      - name: Apply fail-safe hotfix package to test database
-        run: psql -v ON_ERROR_STOP=1 -f supabase/hotfix/handle_new_user_failsafe.sql
+      - name: Show catalog fidelity result
+        run: |
+          test -s "$RUNNER_TEMP/fresh-catalog.json"
+          cmp -s docs/prod-catalog.json "$RUNNER_TEMP/fresh-catalog.json"
+          echo "production catalog == fresh baseline catalog"
 
       - name: Run fail-safe trigger tests
         run: bash tests/supabase/handle_new_user_failsafe.sh
