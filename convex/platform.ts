@@ -165,3 +165,43 @@ export const saveAcademicProfile = mutation({
     return String(id);
   },
 });
+
+
+export const listPublishedResources = query({
+  args: {
+    departmentId: v.optional(v.string()),
+    programme: v.optional(v.string()),
+    semester: v.optional(v.number()),
+    category: v.optional(v.string()),
+    search: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query("resources")
+      .withIndex("by_status", (q) => q.eq("status", "published"))
+      .collect();
+
+    const search = args.search?.trim().toLowerCase();
+
+    return rows
+      .filter((resource) => {
+        if (args.departmentId && resource.departmentId !== args.departmentId) return false;
+        if (args.programme && resource.programme !== args.programme) return false;
+        if (args.semester && resource.semester !== args.semester) return false;
+        if (args.category && resource.category !== args.category) return false;
+        if (search) {
+          const haystack = [
+            resource.title,
+            resource.description ?? "",
+            resource.programme ?? "",
+            resource.subject ?? "",
+            resource.category,
+          ].join(" ").toLowerCase();
+          if (!haystack.includes(search)) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => (b.publishedAt ?? b.createdAt) - (a.publishedAt ?? a.createdAt))
+      .slice(0, 100);
+  },
+});

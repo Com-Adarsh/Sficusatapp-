@@ -11,7 +11,7 @@ import { createClient as createSupabaseBrowserClient } from "@/lib/supabase/clie
 export default function Profile() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const profile = useQuery(api.platform.myAcademicProfile, signedIn === true ? {} : "skip");
-  const departments = useQuery(api.platform.listDepartments, {});
+  const departments = useQuery(api.platform.listDepartments, signedIn === true ? {} : "skip");
   const saveProfile = useMutation(api.platform.saveAcademicProfile);
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -29,6 +29,10 @@ export default function Profile() {
     scheme: "",
     campus: "",
   });
+
+  useEffect(() => {
+    createSupabaseBrowserClient().auth.getUser().then(({ data }) => setSignedIn(Boolean(data.user)));
+  }, []);
 
   useEffect(() => {
     if (!profile) return;
@@ -107,6 +111,14 @@ export default function Profile() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (signedIn === null) {
+    return <PageShell><section className="section"><div className="shell"><div className="authcard wide"><div className="eyebrow">Student Profile</div><h1>Connecting your <em>student account.</em></h1><p>Checking your secure session before loading academic details.</p></div></div></section></PageShell>;
+  }
+
+  if (signedIn === false) {
+    return <PageShell><section className="section"><div className="shell"><div className="authcard"><h2>Sign in to manage your profile</h2><p>Your department, programme and semester are stored against your student account.</p><a className="btn primary" href="/sign-in?next=/profile">Sign in</a></div></div></section></PageShell>;
   }
 
   return (

@@ -22,8 +22,8 @@ const starterPrompts = [
 
 function AIPageContent() {
   const searchParams = useSearchParams();
-  const profile = useQuery(api.platform.myAcademicProfile, signedIn === true ? {} : "skip");
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  const profile = useQuery(api.platform.myAcademicProfile, signedIn === true ? {} : "skip");
   const [subject, setSubject] = useState(searchParams.get("subject") ?? "");
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
