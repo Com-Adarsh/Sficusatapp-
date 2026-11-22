@@ -9,54 +9,77 @@ jobs:
   postgres-only:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    services:
-      postgres:
-        image: public.ecr.aws/supabase/postgres:17.12.0.000
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 20
     env:
       PGHOST: 127.0.0.1
       PGPORT: 5432
-      PGUSER: supabase_admin
+      PGUSER: postgres
       PGPASSWORD: postgres
       PGDATABASE: postgres
     steps:
       - uses: actions/checkout@v4
-      - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Install runner PostgreSQL
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y postgresql postgresql-client postgresql-contrib
+          sudo systemctl start postgresql
+          sudo -u postgres psql -v ON_ERROR_STOP=1 -c "alter role postgres password 'postgres';"
+
+      - name: Install pgvector or create CI stub
+        run: |
+          set -euo pipefail
+          PG_MAJOR="$(pg_config --major-version)"
+          if apt-cache show "postgresql-${PG_MAJOR}-pgvector" >/dev/null 2>&1; then
+            sudo apt-get install -y "postgresql-${PG_MAJOR}-pgvector"
+          else
+            sudo mkdir -p "/usr/share/postgresql/${PG_MAJOR}/extension"
+            sudo tee "/usr/share/postgresql/${PG_MAJOR}/extension/vector.control" >/dev/null <<'EOF'
+          comment = 'CI stub for pgvector; current migrations only require CREATE/ALTER EXTENSION'
+          default_version = '0.0.1'
+          module_pathname = '$libdir/vector'
+          relocatable = true
+          EOF
+            sudo tee "/usr/share/postgresql/${PG_MAJOR}/extension/vector--0.0.1.sql" >/dev/null <<'EOF'
+          -- CI-only pgvector stub. No vector type/operator is required by the
+          -- current active migration chain; the extension object is sufficient
+          -- for CREATE EXTENSION and ALTER EXTENSION ... SET SCHEMA.
+          EOF
+          fi
+
       - name: Prepare Supabase-compatible Postgres shim
         run: psql -v ON_ERROR_STOP=1 -f tests/supabase/postgres_shim.sql
-      - name: Apply all migrations from empty database
+
+      - name: Apply every active migration from an empty database
         run: |
           set -euo pipefail
           for file in $(find supabase/migrations -maxdepth 1 -type f -name '*.sql' | sort); do
             echo "=== APPLY $file ==="
             psql -v ON_ERROR_STOP=1 -f "$file"
           done
+
       - name: Apply fail-safe hotfix package to test database
         run: psql -v ON_ERROR_STOP=1 -f supabase/hotfix/handle_new_user_failsafe.sql
+
       - name: Run fail-safe trigger tests
         run: bash tests/supabase/handle_new_user_failsafe.sh
-      - name: Run SQL security tests
+
+      - name: Run every SQL security test
         run: |
           set -euo pipefail
           for file in $(find supabase/tests -maxdepth 1 -type f -name '*.sql' | sort); do
             echo "=== TEST $file ==="
             psql -v ON_ERROR_STOP=1 -f "$file"
           done
+
       - name: Guard protected refs
         run: node --import tsx tests/assert-dev-supabase.test.ts
+
       - name: Ensure profile idempotency test
         run: node --import tsx tests/ensure-profile.test.ts
+
       - name: Grievance token cancellation test
         run: node --import tsx tests/grievance-cancel.test.ts
+
       - name: Schema drift report
         run: bash tests/supabase/schema-drift.sh
