@@ -1,5 +1,5 @@
 begin;
-select plan(30);
+select no_plan();
 
 -- Student identity.
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
@@ -101,13 +101,21 @@ insert into public.blood_requests(owner_id,requester_name,phone,blood_group,unit
 values ('10000000-0000-0000-0000-000000000001','Test','0000000000','O+',1,'Test Hospital','Ernakulam','resolved');
 select is((select status from public.blood_requests where owner_id='10000000-0000-0000-0000-000000000001' order by created_at desc limit 1),'pending','blood request insert cannot self-resolve');
 
-insert into public.grievances(owner_id,tracking_token_hash,title,description,category,status)
-values ('10000000-0000-0000-0000-000000000001','test-hash','Test grievance','Test','academic','resolved');
-select is((select status from public.grievances where owner_id='10000000-0000-0000-0000-000000000001' order by created_at desc limit 1),'open','grievance insert cannot self-resolve');
+select throws_ok(
+  $q$insert into public.grievances(owner_id,tracking_token_hash,title,description,category,status)
+      values ('10000000-0000-0000-0000-000000000001','test-hash','Test grievance','Test','academic','open')$q$,
+  '42501',
+  null,
+  'student cannot directly insert confidential grievance rows'
+);
 
-insert into public.tickets(owner_id,module,title,status)
-values ('10000000-0000-0000-0000-000000000001','test','Test ticket','resolved');
-select is((select status from public.tickets where owner_id='10000000-0000-0000-0000-000000000001' order by created_at desc limit 1),'open','ticket insert cannot self-resolve');
+select throws_ok(
+  $q$insert into public.tickets(owner_id,module,title,status)
+      values ('10000000-0000-0000-0000-000000000001','test','Test ticket','open')$q$,
+  '42501',
+  null,
+  'student cannot directly insert confidential ticket rows'
+);
 
 insert into public.helpdesk_entries(owner_id,module,title,status)
 values ('10000000-0000-0000-0000-000000000001','test','Test helpdesk','approved');
@@ -130,15 +138,64 @@ set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000001","
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 
--- Moderator without grievance_officer cannot read grievance data.
+-- Grievance confidentiality: moderator has no read or write path.
 insert into auth.users (id,email)
-values ('10000000-0000-0000-0000-000000000012','rls-moderator@test.local')
+values
+ ('10000000-0000-0000-0000-000000000012','rls-moderator@test.local'),
+ ('10000000-0000-0000-0000-000000000013','rls-officer@test.local')
 on conflict (id) do nothing;
 insert into public.user_roles(user_id,role)
-values ('10000000-0000-0000-0000-000000000012','moderator')
+values
+ ('10000000-0000-0000-0000-000000000012','moderator'),
+ ('10000000-0000-0000-0000-000000000013','grievance_officer')
 on conflict do nothing;
+
+select is(
+  (select count(*) from pg_policies
+   where schemaname='public'
+     and tablename in ('grievances','grievance_updates','interventions','tickets')
+     and cmd in ('INSERT','UPDATE','DELETE')
+     and (coalesce(qual,'') || ' ' || coalesce(with_check,'')) ilike '%moderator%'),
+  0::bigint,
+  'moderators have no grievance write policies'
+);
+
 set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000012","role":"authenticated"}',true);
 select is((select count(*) from public.grievances),0::bigint,'moderator without grievance_officer cannot read grievances');
+select throws_ok(
+  $q$insert into public.grievances(owner_id,tracking_token_hash,title,description,category)
+      values ('10000000-0000-0000-0000-000000000012','moderator-hash','Moderator write','blocked','general')$q$,
+  '42501',
+  null,
+  'moderator cannot insert grievance'
+);
+select throws_ok(
+  $q$insert into public.grievance_updates(grievance_id,status,note)
+      values ('00000000-0000-0000-0000-000000000001','open','blocked')$q$,
+  '42501',
+  null,
+  'moderator cannot insert grievance update'
+);
+select throws_ok(
+  $q$insert into public.interventions(note)
+      values ('blocked')$q$,
+  '42501',
+  null,
+  'moderator cannot insert intervention'
+);
+select throws_ok(
+  $q$insert into public.tickets(owner_id,module,title)
+      values ('10000000-0000-0000-0000-000000000012','test','blocked')$q$,
+  '42501',
+  null,
+  'moderator cannot insert ticket'
+);
+
+set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000013","role":"authenticated"}',true);
+select ok(
+  (select count(*) from public.grievances) >= 0,
+  'grievance officer has a confidential read path'
+);
 
 -- Public settings are opt-in; private settings remain hidden.
 set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000010","role":"authenticated"}',true);
@@ -169,6 +226,8 @@ select ok((select count(*) from public.public_issues) >= 0,'anonymous can use pu
 select is((select count(*) from information_schema.columns where table_schema='public' and table_name='public_issues' and column_name='owner_id'),0::bigint,'public issue view has no owner_id');
 
 -- Coordinator gets limited donor data but not contact details.
+insert into auth.users (id,email) values ('10000000-0000-0000-0000-000000000004','rls-coordinator@test.local') on conflict (id) do nothing;
+insert into public.user_roles(user_id,role) values ('10000000-0000-0000-0000-000000000004','aashraya_coordinator') on conflict do nothing;
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000004","role":"authenticated"}',true);
 select ok((select count(*) from public.list_donor_matches('O+',null)) >= 0,'coordinator can call donor directory');
