@@ -1,8 +1,15 @@
--- Postgres-only CI shim. The Supabase Postgres image provisions auth/storage and
--- its real auth.uid()/auth.jwt() helpers. Production auth.users was inspected
--- read-only on 2026-11-22; tests only use columns common to the real and CI schemas.
+-- Postgres-only CI shim. The Supabase Postgres image ships a pre-seeded local
+-- application schema, so CI explicitly clears public before applying this repo's
+-- migrations. auth.users and auth.uid() come from the Supabase Postgres image.
+-- Production auth.users columns/defaults/constraints were inspected read-only
+-- on 2026-11-22; trigger tests use only columns common to production and CI.
 create extension if not exists pgcrypto;
 create extension if not exists pgtap;
+
+drop schema public cascade;
+create schema public;
+grant all on schema public to postgres;
+grant usage on schema public to anon, authenticated, service_role;
 
 do $$
 begin
