@@ -15,11 +15,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.81.3
 
       - run: npm ci
       - run: supabase start
@@ -58,4 +57,4 @@ jobs:
 
       - name: Stop local Supabase
         if: always()
-        run: supabase stop --no-backup
+        run: command -v supabase >/dev/null 2>&1 && supabase stop --no-backup || true
