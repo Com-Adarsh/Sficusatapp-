@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { pageMetadata } from "@/lib/seo";
+import { noIndexMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = pageMetadata("Aashraya Blood Donation Camps", "Discover Aashraya blood donation camps, campus drives and registration information for students and community participants.", "/aashraya/camps");
+export const metadata: Metadata = noIndexMetadata("Donation Camps");
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return children;

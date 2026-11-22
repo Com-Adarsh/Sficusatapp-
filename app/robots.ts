@@ -15,6 +15,8 @@ export default function robots(): MetadataRoute.Robots {
         "/sahayi/assignments",
         "/support/helpdesk/academic/cbt/coordinator",
         "/sign-in",
+        "/register",
+        "/notifications",
         "/forgot-password",
         "/reset-password",
         "/auth/callback",

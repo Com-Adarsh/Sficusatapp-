@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { pageMetadata } from "@/lib/seo";
+import { noIndexMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = pageMetadata("Browse CUSAT Notes & Question Papers", "Browse academic notes, question papers, syllabi and updates by programme, semester, department and course for CUSAT students.", "/resources/browse");
+export const metadata: Metadata = noIndexMetadata("Browse Resources");
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return children;

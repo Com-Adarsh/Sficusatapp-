@@ -3,23 +3,12 @@ import type { MetadataRoute } from "next";
 const SITE_URL = "https://sficusatapp.vercel.app";
 
 const publicRoutes = [
+  // Demo-backed modules are intentionally excluded until live data is connected.
+
   "/",
-  "/resources",
-  "/resources/browse",
-  "/opportunities",
-  "/opportunities/browse",
-  "/scholarships",
   "/support",
-  "/aashraya",
-  "/aashraya/camps",
   "/sahayi",
   "/samskara",
-  "/samskara/events",
-  "/samskara/competitions",
-  "/samskara/gallery",
-  "/samskara/magazine",
-  "/samskara/volunteers",
-  "/updates",
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {

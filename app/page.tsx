@@ -17,7 +17,7 @@ import {
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = pageMetadata(
-  "SFI CUSAT Student Platform",
+  "SFI CUSAT Student Platform for Campus Life and Resources",
   "Explore student resources, support, opportunities and campus initiatives for CUSAT students through the SFI CUSAT digital platform.",
   "/",
 );
