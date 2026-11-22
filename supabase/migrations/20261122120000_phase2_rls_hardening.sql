@@ -141,37 +141,44 @@ drop policy if exists grievance_updates_staff on public.grievance_updates;
 drop policy if exists interventions_staff on public.interventions;
 drop policy if exists tickets_owner on public.tickets;
 
+-- Grievance data is confidential and is written only by grievance officers/admins.
+-- Student submission and token-based cancellation/status lookup use the server API with
+-- the service-role client; no direct student/moderator DML policy exists.
 create policy grievances_officer_read on public.grievances
 for select to authenticated
 using (private.has_role('grievance_officer'::public.user_role) or private.has_role('admin'::public.user_role));
+
+create policy grievances_officer_write on public.grievances
+for all to authenticated
+using (private.has_role('grievance_officer'::public.user_role) or private.has_role('admin'::public.user_role))
+with check (private.has_role('grievance_officer'::public.user_role) or private.has_role('admin'::public.user_role));
 
 create policy grievance_updates_officer_read on public.grievance_updates
 for select to authenticated
 using (private.has_role('grievance_officer'::public.user_role) or private.has_role('admin'::public.user_role));
 
+create policy grievance_updates_officer_write on public.grievance_updates
+for all to authenticated
+using (private.has_role('grievance_officer'::public.user_role) or private.has_role('admin'::public.user_role))
+with check (private.has_role('grievance_officer'::public.user_role) or private.has_role('admin'::public.user_role));
+
 create policy interventions_officer_read on public.interventions
 for select to authenticated
 using (private.has_role('grievance_officer'::public.user_role) or private.has_role('admin'::public.user_role));
+
+create policy interventions_officer_write on public.interventions
+for all to authenticated
+using (private.has_role('grievance_officer'::public.user_role) or private.has_role('admin'::public.user_role))
+with check (private.has_role('grievance_officer'::public.user_role) or private.has_role('admin'::public.user_role));
 
 create policy tickets_officer_read on public.tickets
 for select to authenticated
 using (private.has_role('grievance_officer'::public.user_role) or private.has_role('admin'::public.user_role));
 
-create policy tickets_owner_insert on public.tickets
-for insert to authenticated
-with check (owner_id=auth.uid());
-
-create policy tickets_owner_update on public.tickets
-for update to authenticated
-using (owner_id=auth.uid())
-with check (owner_id=auth.uid());
-
--- Owner cancellation remains an explicit UPDATE path.
-drop policy if exists grievances_owner_cancel on public.grievances;
-create policy grievances_owner_cancel on public.grievances
-for update to authenticated
-using (owner_id=auth.uid())
-with check (owner_id=auth.uid() and status='cancelled');
+create policy tickets_officer_write on public.tickets
+for all to authenticated
+using (private.has_role('grievance_officer'::public.user_role) or private.has_role('admin'::public.user_role))
+with check (private.has_role('grievance_officer'::public.user_role) or private.has_role('admin'::public.user_role));
 
 -- Public/non-sensitive settings are opt-in; all other settings remain admin-only.
 alter table public.site_settings
@@ -212,6 +219,12 @@ begin
       forced := forced || jsonb_build_object(col, null);
     end if;
   end loop;
+
+  if tg_table_name = 'profiles'
+     and row_data ? 'id'
+     and row_data->>'id' is distinct from auth.uid()::text then
+    raise exception 'profile id may only be set to the current user';
+  end if;
 
   if row_data ? 'status' then
     if tg_table_name in ('resources','opportunities','helpdesk_entries','issues',
@@ -271,6 +284,10 @@ for each row execute function private.prevent_owner_moderation_insert();
 
 drop trigger if exists prevent_owner_moderation_insert on public.issues;
 create trigger prevent_owner_moderation_insert before insert on public.issues
+for each row execute function private.prevent_owner_moderation_insert();
+
+drop trigger if exists prevent_owner_moderation_insert on public.profiles;
+create trigger prevent_owner_moderation_insert before insert on public.profiles
 for each row execute function private.prevent_owner_moderation_insert();
 
 -- Content tables.
@@ -385,11 +402,8 @@ for update to authenticated
 using (owner_id=auth.uid())
 with check (owner_id=auth.uid() and status='cancelled');
 
--- Grievance owners have no DELETE policy; add explicit cancellation update.
-drop policy if exists grievances_owner_cancel on public.grievances;
-create policy grievances_owner_cancel on public.grievances
-for update to authenticated
-using (owner_id=auth.uid())
-with check (owner_id=auth.uid() and status='cancelled');
-
+-- Grievance owner cancellation is routed through the token-based server API.
+-- This avoids the PostgreSQL UPDATE/SELECT RLS interaction: an UPDATE target is
+-- first filtered by the table's SELECT visibility, so a confidential owner cannot
+-- reliably cancel a row after owner SELECT is removed.
 revoke delete on public.blood_requests from authenticated;
