@@ -23,6 +23,16 @@ fi
 echo "=== APPLY BASELINE ==="
 psql -v ON_ERROR_STOP=1 -d "$DB_NAME" -f supabase/baseline/00000000000000_prod_schema_baseline.sql
 
+if [[ -n "${CATALOG_OUT:-}" ]]; then
+  echo "=== CAPTURE FRESH BASELINE CATALOG ==="
+  psql -v ON_ERROR_STOP=1 -At -d "$DB_NAME" -f scripts/catalog.sql > "$CATALOG_OUT"
+  if ! diff -u docs/prod-catalog.json "$CATALOG_OUT"; then
+    echo "ERROR: fresh baseline catalog differs from docs/prod-catalog.json" >&2
+    exit 1
+  fi
+  echo "=== BASELINE CATALOG FIDELITY GREEN ==="
+fi
+
 recorded_versions=(
   20261121160535_phase1_foundation
   20261121160657_phase1_foundation_actual
