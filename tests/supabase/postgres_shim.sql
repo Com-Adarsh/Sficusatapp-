@@ -55,6 +55,7 @@ create table if not exists storage.objects (
   id uuid primary key default gen_random_uuid(), bucket_id text, owner_id text, name text
 );
 
-grant usage on schema auth, storage to postgres, anon, authenticated, service_role;
+grant usage, create on schema auth, storage, private to postgres, service_role;
+grant usage on schema auth, storage to anon, authenticated;
 grant select, insert, update, delete on auth.users to postgres, service_role;
 grant select, insert, update, delete on storage.buckets, storage.objects to postgres, service_role;
