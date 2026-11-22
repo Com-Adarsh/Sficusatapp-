@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { ensureProfileForUser } from "./ensure-profile";
+import { ensureProfileForUser } from "../lib/auth/ensure-profile";
 
 const profiles = new Map<string, string>();
 const roles = new Set<string>();
