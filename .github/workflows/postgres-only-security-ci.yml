@@ -40,8 +40,14 @@ jobs:
             sleep 2
           done
           exit 1
+      - name: Locate Supabase Postgres service container
+        run: |
+          DB_CONTAINER="$(docker ps --filter ancestor=supabase/postgres:15.8.1.085 -q | head -1)"
+          test -n "$DB_CONTAINER"
+          echo "DB_CONTAINER=$DB_CONTAINER" >> "$GITHUB_ENV"
+
       - name: Bootstrap Supabase-compatible Postgres
-        run: psql -v ON_ERROR_STOP=1 -f tests/supabase/postgres_test_shim.sql
+        run: docker exec -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < tests/supabase/postgres_test_shim.sql
       - name: Apply production-applied migrations in order
         run: |
           set -euo pipefail
@@ -53,7 +59,7 @@ jobs:
             supabase/migrations/20261121163000_phase2_donor_consent_fix.sql
           do
             echo "== APPLY $f =="
-            psql -v ON_ERROR_STOP=1 -f "$f"
+            docker exec -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < "$f"
           done
       - name: Apply staged auth, role and RLS migrations
         run: |
@@ -64,12 +70,12 @@ jobs:
             supabase/migrations/20261122120000_phase2_rls_hardening.sql
           do
             echo "== APPLY $f =="
-            psql -v ON_ERROR_STOP=1 -f "$f"
+            docker exec -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < "$f"
           done
       - name: Apply hotfix files
-        run: psql -v ON_ERROR_STOP=1 -f supabase/hotfix/handle_new_user_failsafe.sql
+        run: docker exec -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < supabase/hotfix/handle_new_user_failsafe.sql
       - name: Hotfix trigger tests
-        run: psql -v ON_ERROR_STOP=1 -f supabase/tests/auth_trigger_postgres.sql
+        run: docker exec -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < supabase/tests/auth_trigger_postgres.sql
       - name: Run all SQL tests
         run: |
           set -euo pipefail
@@ -85,7 +91,7 @@ jobs:
       - name: Schema drift against production snapshot
         run: |
           set -euo pipefail
-          pg_dump --schema-only --no-owner --no-privileges --schema=public > /tmp/actual-public-schema.sql
+          docker exec "$DB_CONTAINER" pg_dump -U supabase_admin --schema-only --no-owner --no-privileges --schema=public > /tmp/actual-public-schema.sql
           sed -E \
             -e '/^-- Dumped from database version/d' \
             -e '/^-- Dumped by pg_dump version/d' \
@@ -98,8 +104,8 @@ jobs:
         if: failure()
         run: |
           echo "=== PostgreSQL version ==="
-          psql -c "select version();"
+          docker exec "$DB_CONTAINER" psql -U supabase_admin -d postgres -c "select version();"
           echo "=== Tables ==="
-          psql -Atc "select schemaname||'.'||tablename from pg_tables where schemaname='public' order by 1;"
+          docker exec "$DB_CONTAINER" psql -U supabase_admin -d postgres -Atc "select schemaname||'.'||tablename from pg_tables where schemaname='public' order by 1;"
           echo "=== RLS policies ==="
-          psql -Atc "select schemaname||'.'||tablename||' '||policyname||' '||cmd from pg_policies where schemaname='public' order by 1,2,3;" || true
+          docker exec "$DB_CONTAINER" psql -U supabase_admin -d postgres -Atc "select schemaname||'.'||tablename||' '||policyname||' '||cmd from pg_policies where schemaname='public' order by 1,2,3;" || true
