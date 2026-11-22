@@ -22,6 +22,13 @@ function SignInForm() {
     e.preventDefault(); setBusy(true); setError("");
     const { error } = await createClient().auth.signInWithPassword({ email, password });
     if (error) { setError(error.message); setBusy(false); return; }
+    const ensureResponse = await fetch("/api/auth/ensure-profile", { method: "POST" });
+    if (!ensureResponse.ok) {
+      const body = await ensureResponse.json().catch(() => null);
+      setError(body?.error ?? "Sign-in succeeded, but your student profile could not be initialized. Please try again.");
+      setBusy(false);
+      return;
+    }
     window.location.assign(next);
   }
 
