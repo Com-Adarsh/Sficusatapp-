@@ -15,7 +15,18 @@
 7. Record current migration history and the current handle_new_user() definition.
 8. Confirm Vercel production environment variables still point at production.
 
-## 2. Apply order
+## 2. Application pre-merge security gate
+
+Before PR #18 or any application code using the service client can merge:
+
+1. In Vercel Production, set `SUPABASE_SERVICE_ROLE_KEY` as a server-only **Sensitive** environment variable. Never expose it as `NEXT_PUBLIC_*` and never commit it.
+2. Confirm the following routes currently use `createServiceClient()` and therefore require that secret: `app/api/grievances/route.ts` and `app/api/grievances/status/route.ts`.
+3. `POST /api/grievances` and `POST /api/grievances/status` are unauthenticated at the HTTP boundary. They require rate limiting before production exposure, preferably keyed by IP plus a short-lived token bucket.
+4. Add Cloudflare Turnstile (or the approved equivalent) to the public grievance submission flow and verify the token server-side before calling the service client.
+5. Keep the service-role client in `server-only` code; it bypasses RLS and must never be imported into client components.
+6. Re-test the routes with invalid, missing, replayed and excessive requests before merge.
+
+## 3. Apply order
 
 1. Apply `supabase/hotfix/handle_new_user_apply_and_verify.sql` in the Supabase SQL editor; it contains only the `public.handle_new_user()` replacement plus immediate verification queries.
 2. Verify the function definition and trigger.
@@ -26,7 +37,7 @@
 7. Re-run post-migration verification.
 8. Only then merge/deploy application code that depends on the new schema or role helpers.
 
-## 3. Post-checks
+## 4. Post-checks
 
 - New signup succeeds.
 - New signup creates exactly one profile and student role.
@@ -37,7 +48,7 @@
 - /profile, /ai, /resources, /support/*, /aashraya/*, and /sahayi/* do not regress.
 - RLS tests remain green.
 
-## 4. Rollback
+## 5. Rollback
 
 If the hotfix causes an unexpected problem:
 
@@ -48,7 +59,7 @@ If the hotfix causes an unexpected problem:
 5. Investigate logs before retrying.
 6. Do not delete or rewrite migration history to hide an applied migration.
 
-## 5. Production verification SQL
+## 6. Production verification SQL
 
 Use `supabase/hotfix/handle_new_user_apply_and_verify.sql` for the one-paste SQL-editor operation. The post-signup query in that file is intentionally commented until a throwaway email exists.
 
@@ -57,6 +68,6 @@ Use the prepared one-paste SQL in the deployment PR. It must verify:
 - on_auth_user_created still calls handle_new_user().
 - The controlled test signup has both profile and student-role rows.
 
-## 6. Approval gate
+## 7. Approval gate
 
 No production SQL is applied by automation until the user explicitly approves that exact production operation. No merge to main occurs before the required migrations are applied and verified.
