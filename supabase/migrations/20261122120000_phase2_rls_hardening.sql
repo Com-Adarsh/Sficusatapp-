@@ -1,4 +1,5 @@
 -- Phase 2 RLS hardening. NOT APPLIED TO PRODUCTION.
+-- Donor area is absent from the production donor schema; add it here so the coordinator directory has an explicit area field.
 -- Migrations first, code merge second.
 
 -- Announcements/events are moderation-owned.
@@ -97,16 +98,18 @@ revoke select on public.issues from anon;
 grant select on public.public_issues to anon, authenticated;
 
 -- Limited donor matching RPC: no contact fields.
-create or replace function public.list_donor_matches(p_blood_group text, p_district text default null)
-returns table(id uuid,blood_group text,district text,available boolean,consent boolean)
+alter table public.donors add column if not exists area text;
+create or replace function public.list_donor_matches(p_blood_group text, p_area text default null)
+returns table(id uuid,blood_group text,area text,available boolean,consent boolean)
 language sql
 security definer
 set search_path=''
 as $$
-  select d.id, d.blood_group, null::text as district, d.available, d.consent
+  select d.id, d.blood_group, d.area, d.available, d.consent
   from public.donors d
   where (private.has_role('aashraya_coordinator'::public.user_role) or private.has_role('admin'::public.user_role))
     and d.blood_group = p_blood_group
+    and (p_area is null or d.area = p_area)
     and d.available = true;
 $$;
 revoke all on function public.list_donor_matches(text,text) from public;
