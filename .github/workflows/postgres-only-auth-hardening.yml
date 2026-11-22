@@ -43,7 +43,7 @@ jobs:
       PGUSER: postgres
       PGPASSWORD: postgres
       PGDATABASE: postgres
-      PGOPTIONS: "-c request.jwt.claim.role=authenticated -c request.jwt.claim.sub=10000000-0000-0000-0000-000000000001"
+      PGOPTIONS: "-c app.settings.project_ref=ci-postgres -c request.jwt.claim.role=authenticated -c request.jwt.claim.sub=10000000-0000-0000-0000-000000000001"
 
     steps:
       - uses: actions/checkout@v4
@@ -54,10 +54,23 @@ jobs:
       - name: Bootstrap auth/storage shim
         run: psql -v ON_ERROR_STOP=1 -f tests/postgres/auth_shim.sql
 
-      - name: Apply all migrations from empty database
+      - name: Apply current production migration lineage from empty database
         run: |
           set -euo pipefail
-          for f in supabase/migrations/*.sql; do
+          # Legacy 0001-0009 migrations are superseded by the Phase-1 foundation
+          # and cannot be replayed together with it (0001 creates incompatible
+          # profiles/user_roles tables). 202611210001 is the duplicate draft of
+          # 20261121161700 and is likewise not replayable before the actual
+          # foundation. The production snapshot identifies 20261121161700 as
+          # the exact recovered Phase-1 foundation.
+          for f in \
+            supabase/migrations/20261121161700_phase1_foundation_actual.sql \
+            supabase/migrations/20261121162000_phase2_security_performance.sql \
+            supabase/migrations/20261121162500_phase2_advisor_cleanup.sql \
+            supabase/migrations/20261121163000_phase2_donor_consent_fix.sql \
+            supabase/migrations/20261121170000_phase2_auth_foundation.sql \
+            supabase/migrations/20261121171000_phase2_role_rpc.sql \
+            supabase/migrations/20261122120000_phase2_rls_hardening.sql; do
             echo "==> $f"
             psql -v ON_ERROR_STOP=1 -f "$f"
           done
