@@ -1,5 +1,5 @@
 begin;
-select plan(11);
+select plan(14);
 
 insert into auth.users (id,aud,role,email,created_at,updated_at,email_confirmed_at)
 values
@@ -64,6 +64,9 @@ select ok((select count(*) from public.grievances) >= 2,'admin can read protecte
 set local role anon;
 select set_config('request.jwt.claims','{"role":"anon"}',true);
 select is((select count(*) from public.resources where status='pending'),0::bigint,'anonymous cannot read pending resources');
+select is((select count(*) from public.grievances),0::bigint,'anonymous cannot read grievances');
+select is((select count(*) from public.blood_requests),0::bigint,'anonymous cannot read blood requests');
+select is((select count(*) from public.scribe_requests),0::bigint,'anonymous cannot read scribe requests');
 
 select * from finish();
 rollback;
