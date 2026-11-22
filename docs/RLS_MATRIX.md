@@ -24,10 +24,10 @@ Legend:
 | donors | Self | Self | **PROPOSED:** protected fields cleared on insert | Self; **owner_id protected** | **PROPOSED:** protected moderation fields cannot be self-changed | Self |
 | event_registrations | Self | Self | **PROPOSED:** protected attendance fields cleared if present | Self; protected fields | **PROPOSED:** protected fields cannot be self-changed | Self |
 | events | Public approved; Staff | **PROPOSED:** Staff only | Staff | **PROPOSED:** Staff only | Staff | Staff |
-| grievance_updates | **PROPOSED:** Grievance officer/admin only | Staff workflow | **PROPOSED:** protected fields | Staff workflow | Staff workflow | Staff workflow |
-| grievances | **PROPOSED:** Grievance officer/admin only | Self | **PROPOSED:** status forced open; protected fields cleared | **PROPOSED:** owner cancellation; officer/admin moderation | **PROPOSED:** owner may only set status=cancelled | Staff/officer |
+| grievance_updates | **PROPOSED:** Grievance officer/admin only | **PROPOSED:** Officer/admin only; student submission uses server API | Officer/admin | **PROPOSED:** Officer/admin only | Officer/admin | Officer/admin |
+| grievances | **PROPOSED:** Grievance officer/admin only | **PROPOSED:** Officer/admin only; student submission uses server API | Officer/admin | **PROPOSED:** Officer/admin only; token API handles owner cancellation | Officer/admin | Officer/admin |
 | helpdesk_entries | Public approved; Self; Staff | Self/Staff | **PROPOSED:** Self requires status=pending | Self/Staff | **PROPOSED:** approved edits requeue to pending; protected fields cannot be self-changed | Staff |
-| interventions | **PROPOSED:** Grievance officer/admin only | Coordinator/Staff | Coordinator/Staff | Coordinator/Staff | Coordinator/Staff | Coordinator/Staff |
+| interventions | **PROPOSED:** Grievance officer/admin only | **PROPOSED:** Officer/admin only | Officer/admin | **PROPOSED:** Officer/admin only | Officer/admin | Officer/admin |
 | issues | **PROPOSED:** public_issues view only; Self; Staff | Self/Staff | **PROPOSED:** Self requires owner_id=auth.uid() and status=pending | Self/Staff | **PROPOSED:** approved edits requeue to pending; protected fields cannot be self-changed | Staff |
 | leaderboard | **PROPOSED: explicit deny for anon/authenticated** | — | — | — | — | — |
 | leaderboard_sessions | **PROPOSED: explicit deny for anon/authenticated** | — | — | — | — | — |
@@ -41,7 +41,7 @@ Legend:
 | scribe_requests | Self; Sahayi/Admin | Self; Sahayi/Admin | Self; Sahayi/Admin | Self; Sahayi/Admin; **status protected** | **PROPOSED:** non-staff cannot change status | Self; Sahayi/Admin |
 | scribe_volunteers | Self; Sahayi/Admin | Self; Sahayi/Admin | Self; Sahayi/Admin | Self; Sahayi/Admin; **status protected** | **PROPOSED:** non-staff cannot change status | Self; Sahayi/Admin |
 | site_settings | **PROPOSED:** anon/authenticated where is_public=true; Admin otherwise | Admin | Admin | Admin | Admin | Admin |
-| tickets | **PROPOSED:** Grievance officer/admin only | Self | **PROPOSED:** status forced open; protected fields cleared | Self; officer/admin | **PROPOSED:** protected fields cannot be self-changed | Staff |
+| tickets | **PROPOSED:** Grievance officer/admin only | **PROPOSED:** Officer/admin only; public API/service path as required | Officer/admin | **PROPOSED:** Officer/admin only | Officer/admin | Officer/admin |
 | user_roles | Self read; Admin | Admin | Admin | Admin | Admin | Admin |
 
 ## High-risk findings and proposed disposition
@@ -75,7 +75,7 @@ The proposed trigger covers resources, opportunities, helpdesk_entries, issues, 
 resource_files self-writes remain allowed, but an insert/update/delete by a non-staff owner automatically sets the parent approved resource back to pending and clears published_at. This prevents a previously approved publication from silently changing underneath its approval record.
 
 ### 7. Hard deletes
-The proposed migration removes authenticated DELETE from blood requests and provides cancellation via status update. Grievance owners already have no DELETE policy; the proposed migration adds explicit owner cancellation through UPDATE. Staff retention/deletion rules remain separate.
+The proposed migration removes authenticated DELETE from blood requests and provides cancellation via status update. Grievance owners have no direct DELETE or UPDATE policy. Cancellation is routed through the token-based server API using the server-side service client, because PostgreSQL UPDATE targeting is also constrained by row visibility/SELECT RLS. Staff retention/deletion rules remain separate.
 
 ## Explicit USING(true) policies in current production
 
@@ -88,11 +88,11 @@ These are the only unconditional public-read policies identified in the producti
 
 ## Grievance confidentiality
 
-The proposed migration adds the grievance_officer role. Moderators are not granted SELECT on grievances, grievance_updates, interventions, or tickets. Owner-read policies on grievances, grievance_updates, and interventions are removed. Owners may still submit grievances and cancel them through the explicit owner-cancel UPDATE policy.
+The proposed migration adds the `grievance_officer` role. Moderators are not granted SELECT, INSERT, UPDATE, or DELETE on grievances, grievance_updates, interventions, or tickets. Every direct DML policy on those four tables is limited to grievance_officer/admin. Student grievance submission remains a server API operation using the service client. Grievance cancellation is also routed through the token-based server API, avoiding the PostgreSQL UPDATE/SELECT RLS interaction.
 
 ## Insert-side protection
 
-A BEFORE INSERT trigger covers scribe_volunteers, scribe_requests, event_registrations, donors, blood_requests, grievances, tickets, resources, opportunities, helpdesk_entries, and issues. For non-staff users it clears reviewer/assignee/moderation fields and forces safe status defaults: pending for moderation/content/scribe/blood workflows and open for grievances/tickets. Future named verified, attended, checked-in, reviewer, rejection, or assignee columns are also cleared automatically.
+A BEFORE INSERT trigger covers scribe_volunteers, scribe_requests, event_registrations, donors, blood_requests, grievances, tickets, resources, opportunities, helpdesk_entries, issues, and profiles. Profiles additionally reject an INSERT whose id is not auth.uid(). For non-staff users it clears reviewer/assignee/moderation fields and forces safe status defaults: pending for moderation/content/scribe/blood workflows and open for grievances/tickets. Future named verified, attended, checked-in, reviewer, rejection, or assignee columns are also cleared automatically.
 
 ## Public issues
 
