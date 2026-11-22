@@ -15,6 +15,12 @@
 7. Record current migration history and the current handle_new_user() definition.
 8. Confirm Vercel production environment variables still point at production.
 
+## 1A. Migration-history reconciliation and secret pre-merge gate
+
+1. If the migration was applied by raw SQL rather than the Supabase migration runner, reconcile history with `supabase migration repair 20261122110000 --status applied` **only after verifying the production SQL exactly matches Git**. This command changes migration history, so it is itself a production write and requires explicit approval.
+2. Before merging any code that instantiates the server-side Supabase client, verify Vercel Production has `SUPABASE_SERVICE_ROLE_KEY` as a server-only **Sensitive** variable. Also verify the Turnstile secret (or approved equivalent) exists as a server-only **Sensitive** variable. Never use `NEXT_PUBLIC_*` for either secret and never commit their values.
+3. Do not add or modify either production secret from automation without explicit approval for that exact Vercel operation.
+
 ## 2. Application pre-merge security gate
 
 Before PR #18 or any application code using the service client can merge:
