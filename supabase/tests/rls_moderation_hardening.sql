@@ -1,13 +1,15 @@
 begin;
-select plan(17);
+select plan(15);
 
 -- Student identity.
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 set local role authenticated;
 
 -- Moderation status cannot be self-approved.
-select lives_ok(
+select throws_ok(
   $insert into public.issues(owner_id,category,title,description,status) values ('10000000-0000-0000-0000-000000000001','general','x','x','approved')$,
+  '42501',
+  null,
   'student cannot insert an approved issue'
 );
 select is(
