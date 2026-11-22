@@ -18,6 +18,9 @@ begin
   if not exists (select 1 from pg_roles where rolname='service_role') then create role service_role nologin; end if;
 end $$;
 
+drop schema storage cascade;
+create schema storage;
+grant usage, create on schema storage to postgres;
 grant usage on schema auth, storage to anon, authenticated, service_role;
 
 -- Pre-Phase-1 production tables retained in the production baseline.
