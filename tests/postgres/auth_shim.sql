@@ -1,4 +1,3 @@
-[object Object]
 -- Pre-Phase-1 production tables required by the applied security migration.
 create table public.leaderboard_sessions (
   id uuid primary key,
