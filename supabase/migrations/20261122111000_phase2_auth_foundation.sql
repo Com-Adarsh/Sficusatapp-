@@ -6,7 +6,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = ''
-as $$
+as $fn$
 begin
   -- Auth must never fail because profile/role side effects fail.
   begin
@@ -35,7 +35,7 @@ begin
 
   return new;
 end;
-$$;
+$fn$;
 
 revoke all on function public.handle_new_user() from public, anon, authenticated;
 
