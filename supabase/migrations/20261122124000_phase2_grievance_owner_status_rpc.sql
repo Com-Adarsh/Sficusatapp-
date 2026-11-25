@@ -11,12 +11,12 @@ returns table (
 language sql
 security definer
 set search_path=''
-as $$
+as $fn$
   select g.id, g.category, g.status, g.created_at
   from public.grievances as g
   where g.owner_id = (select auth.uid())
   order by g.created_at desc;
-$$;
+$fn$;
 
 revoke all on function public.get_my_grievance_status() from public;
 revoke execute on function public.get_my_grievance_status() from anon;
