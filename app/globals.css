@@ -902,3 +902,12 @@ main{min-height:0}
   .hero.compact h1{font-size:clamp(2.15rem,10vw,3rem)}
   .footer{padding-bottom:90px}
 }
+
+/* UI quick fixes */
+.skip-link{position:fixed;top:8px;left:8px;z-index:100;transform:translateY(-150%);padding:10px 14px;border-radius:10px;background:#11161c;color:#fff;font-weight:800;font-size:12px;box-shadow:0 8px 24px rgba(0,0,0,.18)}.skip-link:focus{transform:none}
+.reference-links a[aria-current="page"]{color:var(--p-red);background:#fff5f6}.reference-links a[aria-current="page"]:after{right:0}.reference-mobile-menu a[aria-current="page"]{color:var(--p-red);background:#fff5f6}
+.reference-search{display:flex;align-items:center;gap:9px}.reference-search input{flex:1;min-width:0;border:0;outline:0;background:transparent}.reference-search-shortcut{display:none;margin-left:auto;color:#8a929c;font-size:11px;white-space:nowrap}
+.reference-mobile-more{min-width:56px;min-height:44px;border:0;background:transparent;color:#9ca3ad;border-radius:12px;padding:6px 7px;font-size:9px;font-weight:700;cursor:pointer}.reference-mobile-more b{display:block;margin-bottom:3px;color:#fff}.reference-mobile-more[aria-expanded="true"]{background:rgba(255,255,255,.10);color:#fff}
+@media (hover:hover) and (pointer:fine){.reference-search-shortcut{display:inline-flex}}
+@media (hover:none), (pointer:coarse){.reference-search input{min-height:44px}}
+@media (max-width:760px){.reference-mobilebar a,.reference-mobile-more{min-height:44px}.reference-mobile-menu a{min-height:44px;align-items:center}}

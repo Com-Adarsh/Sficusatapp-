@@ -61,7 +61,7 @@ export default function Upload() {
 
   return (
     <PageShell>
-      <main className="upload-page">
+      <div className="upload-page">
         <section className="upload-hero">
           <div className="shell upload-page-shell">
             <div className="upload-hero-grid">
@@ -245,7 +245,7 @@ export default function Upload() {
             </div>
           </div>
         </section>
-      </main>
+      </div>
     </PageShell>
   );
 }

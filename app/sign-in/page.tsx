@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 function SignInForm() {
@@ -26,7 +25,7 @@ function SignInForm() {
   }
 
   return (
-    <main className="auth">
+    <main id="main-content" className="auth" tabIndex={-1}>
       <div className="authcard">
         <a href="/" className="back">← Back</a>
         <div className="mark big">SFI</div>
@@ -44,11 +43,13 @@ function SignInForm() {
   );
 }
 
-
 export default function SignIn() {
   return (
-    <Suspense fallback={<main className="auth"><div className="authcard">Loading sign in…</div></main>}>
-      <SignInForm />
-    </Suspense>
+    <>
+      <a className="skip-link" href="#main-content">Skip to main content</a>
+      <Suspense fallback={<main id="main-content" className="auth" tabIndex={-1}><div className="authcard">Loading sign in…</div></main>}>
+        <SignInForm />
+      </Suspense>
+    </>
   );
 }
