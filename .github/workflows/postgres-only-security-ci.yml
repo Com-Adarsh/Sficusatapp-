@@ -1,0 +1,141 @@
+name: postgres-only-security-ci
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+jobs:
+  postgres-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: supabase/postgres:15.8.1.085
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Overlay current Phase 2 migration/test baseline
+        run: |
+          set -euo pipefail
+          git fetch origin phase2-safety-reconciliation
+          for f in \
+            supabase/migrations/202611210001_phase1_foundation.sql \
+            supabase/migrations/20261121161700_phase1_foundation_actual.sql \
+            supabase/migrations/20261121162000_phase2_security_performance.sql \
+            supabase/migrations/20261121162500_phase2_advisor_cleanup.sql \
+            supabase/migrations/20261121163000_phase2_donor_consent_fix.sql \
+            supabase/migrations/20261121170000_phase2_auth_foundation.sql \
+            supabase/migrations/20261121171000_phase2_role_rpc.sql \
+            supabase/migrations/20261122120000_phase2_rls_hardening.sql \
+            supabase/tests/rls_authenticated_roles.sql \
+            supabase/tests/rls_moderation_hardening.sql \
+            docs/prod-schema-snapshot.sql
+          do
+            git checkout origin/phase2-safety-reconciliation -- "$f"
+          done
+
+      - name: Wait for Postgres
+        run: |
+          for i in {1..60}; do
+            pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" && exit 0
+            sleep 2
+          done
+          exit 1
+      - name: Locate Supabase Postgres service container
+        run: |
+          DB_CONTAINER="$(docker ps --filter ancestor=supabase/postgres:15.8.1.085 -q | head -1)"
+          test -n "$DB_CONTAINER"
+          echo "DB_CONTAINER=$DB_CONTAINER" >> "$GITHUB_ENV"
+
+      - name: Bootstrap Supabase-compatible Postgres
+        run: docker exec -e PGPASSWORD=postgres -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < tests/supabase/postgres_test_shim.sql
+      - name: Validate legacy 202611210001 foundation in isolation
+        run: |
+          set -euo pipefail
+          docker exec -e PGPASSWORD=postgres "$DB_CONTAINER" dropdb -U supabase_admin --if-exists legacy_210001
+          docker exec -e PGPASSWORD=postgres "$DB_CONTAINER" createdb -U supabase_admin legacy_210001
+          docker exec -e PGPASSWORD=postgres -i "$DB_CONTAINER" psql -U supabase_admin -d legacy_210001 -v ON_ERROR_STOP=1 -f - < tests/supabase/postgres_test_shim.sql
+          docker exec -e PGPASSWORD=postgres -i "$DB_CONTAINER" psql -U supabase_admin -d legacy_210001 -v ON_ERROR_STOP=1 -f - < supabase/migrations/202611210001_phase1_foundation.sql
+          docker exec -e PGPASSWORD=postgres "$DB_CONTAINER" dropdb -U supabase_admin legacy_210001
+
+      - name: Apply canonical production baseline migrations in order
+        run: |
+          set -euo pipefail
+          # 202611210001 and 20261121161700 are duplicate foundation snapshots in repository history.
+          # 20261121161700 is the valid production "actual" foundation used for the cumulative baseline.
+          # The legacy file is syntax-checked in isolation against the current Phase 2 branch after foundation quoting reconciliation.
+          for f in \
+            supabase/migrations/20261121161700_phase1_foundation_actual.sql \
+            supabase/migrations/20261121162000_phase2_security_performance.sql \
+            supabase/migrations/20261121162500_phase2_advisor_cleanup.sql \
+            supabase/migrations/20261121163000_phase2_donor_consent_fix.sql
+          do
+            echo "== APPLY $f =="
+            docker exec -e PGPASSWORD=postgres -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < "$f"
+          done
+      - name: Schema drift against production snapshot
+        run: |
+          set -euo pipefail
+          docker exec -e PGPASSWORD=postgres "$DB_CONTAINER" dropdb -U supabase_admin --if-exists schema_snapshot
+          docker exec -e PGPASSWORD=postgres "$DB_CONTAINER" createdb -U supabase_admin schema_snapshot
+          docker exec -e PGPASSWORD=postgres -i "$DB_CONTAINER" psql -U supabase_admin -d schema_snapshot -v ON_ERROR_STOP=1 -f - < tests/supabase/postgres_test_shim.sql
+          docker exec -e PGPASSWORD=postgres -i "$DB_CONTAINER" psql -U supabase_admin -d schema_snapshot -v ON_ERROR_STOP=1 -f - < docs/prod-schema-snapshot.sql
+          docker exec -e PGPASSWORD=postgres "$DB_CONTAINER" pg_dump -U supabase_admin --schema-only --no-owner --no-privileges --schema=public postgres > /tmp/actual-production-baseline.sql
+          docker exec -e PGPASSWORD=postgres "$DB_CONTAINER" pg_dump -U supabase_admin --schema-only --no-owner --no-privileges --schema=public schema_snapshot > /tmp/expected-production-baseline.sql
+          diff -u /tmp/expected-production-baseline.sql /tmp/actual-production-baseline.sql
+
+      - name: Apply staged auth, role and RLS migrations
+        run: |
+          set -euo pipefail
+          for f in \
+            supabase/migrations/20261121170000_phase2_auth_foundation.sql \
+            supabase/migrations/20261121171000_phase2_role_rpc.sql \
+            supabase/migrations/20261122120000_phase2_rls_hardening.sql
+          do
+            echo "== APPLY $f =="
+            docker exec -e PGPASSWORD=postgres -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < "$f"
+          done
+      - name: Apply hotfix files
+        run: docker exec -e PGPASSWORD=postgres -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < supabase/hotfix/handle_new_user_failsafe.sql
+      - name: Hotfix trigger tests
+        run: docker exec -e PGPASSWORD=postgres -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < supabase/tests/auth_trigger_postgres.sql
+      - name: Run all SQL tests
+        run: |
+          set -euo pipefail
+          for f in supabase/tests/*.sql; do
+            case "$f" in
+              supabase/tests/auth_trigger_postgres.sql) continue ;;
+            esac
+            echo "== TEST $f =="
+            docker exec -e PGPASSWORD=postgres -i "$DB_CONTAINER" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -f - < "$f"
+          done
+      - name: Guard unit tests
+        run: npx --yes tsx scripts/test-assert-dev-supabase.ts
+      - name: Print failure diagnostics
+        if: failure()
+        run: |
+          echo "=== PostgreSQL version ==="
+          docker exec -e PGPASSWORD=postgres "$DB_CONTAINER" psql -U supabase_admin -d postgres -c "select version();"
+          echo "=== Tables ==="
+          docker exec -e PGPASSWORD=postgres "$DB_CONTAINER" psql -U supabase_admin -d postgres -Atc "select schemaname||'.'||tablename from pg_tables where schemaname='public' order by 1;"
+          echo "=== RLS policies ==="
+          docker exec -e PGPASSWORD=postgres "$DB_CONTAINER" psql -U supabase_admin -d postgres -Atc "select schemaname||'.'||tablename||' '||policyname||' '||cmd from pg_policies where schemaname='public' order by 1;" || true
