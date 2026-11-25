@@ -245,7 +245,7 @@ export default function Upload() {
             </div>
           </div>
         </section>
-      </main>
+      </div>
     </PageShell>
   );
 }
