@@ -4,7 +4,7 @@ create or replace function public.current_user_has_role(required_role public.use
 returns boolean
 language sql
 stable
-security definer
+security invoker
 set search_path=''
 as $fn$ select private.has_role(required_role); $fn$;
 revoke all on function public.current_user_has_role(public.user_role) from public, anon;
