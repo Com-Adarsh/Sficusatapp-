@@ -540,7 +540,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path=''
-as $
+as $fn$
 begin
   begin
     insert into public.profiles (id, full_name)
@@ -567,7 +567,7 @@ begin
 
   return new;
 end;
-$$;
+$fn$;
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
