@@ -13,7 +13,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path=''
-as $$
+as $fn$
 declare
   old_row jsonb := to_jsonb(old);
   new_row jsonb := to_jsonb(new);
@@ -67,14 +67,14 @@ begin
 
   return new;
 end;
-$$;
+$fn$;
 
 create or replace function private.prevent_owner_moderation_insert()
 returns trigger
 language plpgsql
 security definer
 set search_path=''
-as $$
+as $fn$
 declare
   row_data jsonb := to_jsonb(new);
   col text;
@@ -122,4 +122,4 @@ begin
 
   return jsonb_populate_record(new, forced);
 end;
-$$;
+$fn$;
