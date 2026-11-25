@@ -26,6 +26,8 @@ jobs:
         with:
           node-version: 22
       - run: npm install
+      - name: Configure local Convex auth environment
+        run: npx convex env set SUPABASE_AUTH_ISSUER "$SUPABASE_AUTH_ISSUER"
       - name: Generate Convex types and typecheck backend
         run: CONVEX_AGENT_MODE=anonymous npx convex dev --once
       - name: Typecheck application and Convex backend
