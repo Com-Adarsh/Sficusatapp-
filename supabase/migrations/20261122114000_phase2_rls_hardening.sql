@@ -76,7 +76,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path=''
-as $$
+as $fn$
 declare
   old_row jsonb := to_jsonb(old);
   new_row jsonb := to_jsonb(new);
@@ -128,7 +128,7 @@ begin
 
   return new;
 end;
-$$;
+$fn$;
 
 -- Grievance confidentiality: moderators are not grievance officers.
 -- The grievance_officer enum value is added by the preceding migration
@@ -196,7 +196,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path=''
-as $$
+as $fn$
 declare
   row_data jsonb := to_jsonb(new);
   col text;
@@ -239,7 +239,7 @@ begin
 
   return jsonb_populate_record(new, forced);
 end;
-$$;
+$fn$;
 
 -- Attach INSERT protection to every self-insert workflow requested by the security review.
 drop trigger if exists prevent_owner_moderation_insert on public.scribe_volunteers;
@@ -334,7 +334,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path=''
-as $$
+as $fn$
 begin
   if not (private.has_role('moderator'::public.user_role) or private.has_role('admin'::public.user_role)) then
     update public.resources
@@ -346,7 +346,7 @@ begin
   end if;
   return coalesce(new,old);
 end;
-$$;
+$fn$;
 
 drop trigger if exists requeue_resource_after_file_change on public.resource_files;
 create trigger requeue_resource_after_file_change
@@ -365,14 +365,14 @@ returns table(id uuid,blood_group text,area text,available boolean,consent boole
 language sql
 security definer
 set search_path=''
-as $$
+as $fn$
   select d.id, d.blood_group, d.area, d.available, d.consent
   from public.donors d
   where (private.has_role('aashraya_coordinator'::public.user_role) or private.has_role('admin'::public.user_role))
     and d.blood_group = p_blood_group
     and (p_area is null or d.area = p_area)
     and d.available = true;
-$$;
+$fn$;
 revoke all on function public.list_donor_matches(text,text) from public;
 revoke all on function public.list_donor_matches(text,text) from anon;
 grant execute on function public.list_donor_matches(text,text) to authenticated;
