@@ -6,7 +6,7 @@ language sql
 stable
 security definer
 set search_path=''
-as $$ select private.has_role(required_role); $$;
+as $fn$ select private.has_role(required_role); $fn$;
 revoke all on function public.current_user_has_role(public.user_role) from public, anon;
 grant execute on function public.current_user_has_role(public.user_role) to authenticated;
 
